@@ -1,0 +1,6 @@
+{
+  "sms_enabled": true,
+  "sms_provider": "msg91",
+  "sms_msg91_auth_key": "511890TA1sCVBp7k2C69edf40fP1",
+  "sms_msg91_sender_id": "SLOTIQ"
+}

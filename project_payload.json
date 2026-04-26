@@ -1,0 +1,7 @@
+{
+  "name": "SlotIQ-Production",
+  "organization_id": "lwekfpldsodrbbeqzudc",
+  "db_pass": "SlotIQPassword2026!",
+  "region": "ap-south-1",
+  "plan": "free"
+}
