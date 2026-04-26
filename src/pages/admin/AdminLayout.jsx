@@ -9,12 +9,16 @@ import {
   Plus,
   Users,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 } from 'lucide-react'
+import { useStore } from '../../store/useStore'
 import '../../styles/admin.css'
 
 export default function AdminLayout() {
   const navigate = useNavigate()
+  const { darkMode, toggleDarkMode } = useStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -88,6 +92,9 @@ export default function AdminLayout() {
           </div>
           
           <div className="flex items-center gap-4 admin-header-actions">
+            <button onClick={toggleDarkMode} className="admin-btn admin-btn-outline" style={{ padding: '8px' }}>
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button className="admin-btn admin-btn-outline" onClick={() => window.alert('Exporting data...')}>
               Reports
             </button>

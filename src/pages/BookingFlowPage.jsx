@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore'
-import { MOCK_LISTINGS, MOCK_PARKING_PRICING, MOCK_SPORTS_PRICING, MOCK_BOOKINGS, formatInr, randomCode, calcBookingCost } from '../lib/mockData'
+import { MOCK_LISTINGS, MOCK_PARKING_PRICING, MOCK_SPORTS_PRICING, MOCK_BOOKINGS, VEHICLE_TYPES, formatInr, randomCode, calcBookingCost } from '../lib/mockData'
 
 const TIME_SLOTS = ['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00']
 
@@ -13,37 +13,72 @@ function fmt12(t) {
 export default function BookingFlowPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { currentUser, vehicles, addVehicle, listings: storeListings } = useStore()
+  const { currentUser, vehicles, addVehicle, addBooking, listings: storeListings } = useStore()
   const listing = storeListings.find(l => l.id === id) || MOCK_LISTINGS.find(l => l.id === id)
   const isParking = listing?.type === 'parking'
   const sportsPr  = MOCK_SPORTS_PRICING.find(p => p.listing_id === id)
+
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const queryVehicle = searchParams.get('v') || 'car'
 
   const [step,       setStep]       = useState(1)
   const [passType,   setPassType]   = useState('hourly')
   const [date,       setDate]       = useState(new Date().toISOString().split('T')[0])
   const [startTime,  setStartTime]  = useState('10:00')
   const [duration,   setDuration]   = useState(1)
-  const [vehicleId,  setVehicleId]  = useState(vehicles[0]?.id || '')
+  const [vehicleId,  setVehicleId]  = useState('')
   const [payment,    setPayment]    = useState('upi')
   const [showAddVal, setShowAddVal] = useState(false)
-  const [newVeh,     setNewVeh]     = useState({ type: 'car', plate_number: '', nickname: '' })
+  const [newVeh,     setNewVeh]     = useState({ type: 'car', plate_number: '', nickname: '', rc_picture: null })
   const [confirmed,  setConfirmed]  = useState(false)
   const [confCode,   setConfCode]   = useState('')
 
   if (!listing) return <div className="app-shell"><div className="screen-content flex items-center justify-center text-gray-400">Listing not found</div></div>
 
+  useEffect(() => {
+    if (!isParking) return
+    const matchingVeh = vehicles.find(v => v.type === queryVehicle)
+    if (matchingVeh) {
+      setVehicleId(matchingVeh.id)
+      setShowAddVal(false)
+    } else {
+      setVehicleId('')
+      setNewVeh(prev => ({ ...prev, type: queryVehicle, rc_picture: null }))
+      setShowAddVal(true)
+    }
+  }, [vehicles, queryVehicle, isParking])
+
   const selectedVehicle = vehicles.find(v => v.id === vehicleId)
+  const bookingVehicleType = selectedVehicle?.type || queryVehicle
+
   const pricing = isParking
-    ? MOCK_PARKING_PRICING.find(p => p.listing_id === id && p.vehicle_type === (selectedVehicle?.type || 'car'))
+    ? MOCK_PARKING_PRICING.find(p => p.listing_id === id && p.vehicle_type === bookingVehicleType)
     : sportsPr
 
-  const cost = calcBookingCost({ listing, pricing, passType, hours: duration, vehicleType: selectedVehicle?.type })
+  const cost = calcBookingCost({ listing, pricing, passType, hours: duration, vehicleType: bookingVehicleType })
 
   const today = new Date().toISOString().split('T')[0]
 
   function confirmPay() {
     const code = randomCode()
     setConfCode(code)
+
+    // Save actual real booking to store
+    addBooking({
+      listing_name: listing.name,
+      listing_id: listing.id,
+      booking_date: date,
+      start_time: startTime,
+      pass_type: isParking ? passType : 'hourly',
+      status: 'upcoming',
+      amount: cost.total,
+      duration: duration,
+      vehicle_id: vehicleId,
+      conf_code: code,
+      type: listing.type
+    })
+
     setConfirmed(true)
   }
 
@@ -211,13 +246,13 @@ export default function BookingFlowPage() {
                   
                   {showAddVal ? (
                     <div className="p-4 border-2 border-primary rounded-xl bg-primary/5">
-                      <div className="flex gap-2 mb-3">
-                        {['car', 'bike'].map(type => (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {VEHICLE_TYPES.map(v => (
                           <button
-                            key={type} onClick={() => setNewVeh({...newVeh, type})}
-                            className={`flex-1 py-1.5 text-xs font-bold capitalize rounded border ${newVeh.type === type ? 'bg-primary text-white border-primary' : 'bg-white border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'}`}
+                            key={v.value} onClick={() => setNewVeh({...newVeh, type: v.value})}
+                            className={`flex-1 min-w-[30%] py-1.5 text-xs font-bold capitalize rounded border ${newVeh.type === v.value ? 'bg-primary text-white border-primary' : 'bg-white border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'}`}
                           >
-                            {type === 'car' ? '🚗 Car' : '🛵 Bike'}
+                            {v.emoji} {v.label}
                           </button>
                         ))}
                       </div>
@@ -229,14 +264,22 @@ export default function BookingFlowPage() {
                         value={newVeh.nickname} onChange={e => setNewVeh({...newVeh, nickname: e.target.value})}
                         placeholder="Nickname (Optional)" className="w-full mb-3 px-3 py-2 text-sm border rounded outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                       />
+                      <div className="mb-3">
+                        <label className="text-xs font-extrabold text-muted uppercase block mb-1">RC Picture (Required)</label>
+                        <input 
+                          type="file" accept="image/*"
+                          onChange={e => setNewVeh({...newVeh, rc_picture: e.target.files[0]})}
+                          className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-primary hover:file:bg-orange-100"
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <button onClick={() => setShowAddVal(false)} className="flex-1 py-2 text-xs font-bold border rounded dark:text-white dark:border-gray-600">Cancel</button>
                         <button onClick={() => {
                           if (!newVeh.plate_number) return alert('Plate number is required')
+                          if (!newVeh.rc_picture) return alert('RC Picture is required')
                           addVehicle(newVeh)
                           setShowAddVal(false)
-                          setNewVeh({ type: 'car', plate_number: '', nickname: '' })
-                          // It will automatically select because we didn't wire the exact ID, but let's assume user clicks it.
+                          setNewVeh({ type: 'car', plate_number: '', nickname: '', rc_picture: null })
                         }} className="flex-[2] py-2 text-xs font-bold bg-primary text-white rounded">Add</button>
                       </div>
                     </div>
@@ -260,6 +303,7 @@ export default function BookingFlowPage() {
 
               <button 
                 onClick={() => {
+                  if (isParking && !vehicleId) return alert('Please select or add a vehicle to continue.')
                   if (!currentUser?.phone) navigate('/auth/complete-profile', { state: { returnTo: `/book/${id}` } })
                   else setStep(2)
                 }} 
@@ -281,7 +325,8 @@ export default function BookingFlowPage() {
                 {[
                   ['Date', date],
                   ['Time', `${fmt12(startTime)}${duration ? ` · ${duration}hr` : ''}`],
-                  isParking && selectedVehicle ? ['Vehicle', `${selectedVehicle.nickname} (${selectedVehicle.plate_number})`] : null,
+                  isParking && selectedVehicle ? ['Vehicle', `${selectedVehicle.nickname} (${selectedVehicle.plate_number})`] : 
+                  isParking ? ['Vehicle', bookingVehicleType.toUpperCase()] : null,
                   isParking ? ['Pass Type', passType.charAt(0).toUpperCase() + passType.slice(1)] : null,
                 ].filter(Boolean).map(([l,v]) => (
                   <div key={l} className="flex justify-between text-sm mb-1.5">
@@ -300,11 +345,25 @@ export default function BookingFlowPage() {
                       <span className="font-semibold text-gray-700 dark:text-gray-200">{v}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+
+                  {/* Smart Pricing Engine Alerts */}
+                  {cost.appliedCap && (
+                    <div className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-2 rounded-lg text-xs font-bold mt-2 flex items-start gap-1">
+                      <span>✨</span>
+                      <span>Smart Pricing: {cost.appliedCap.charAt(0).toUpperCase() + cost.appliedCap.slice(1)} cap of {formatInr(cost.base)} applied automatically to save you money!</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <span className="font-extrabold text-gray-900 dark:text-white">Total</span>
                     <span className="font-extrabold text-primary text-lg">{formatInr(cost.total)}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Grace Period Note */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3 rounded-card text-xs font-semibold mb-4 border border-blue-100 dark:border-blue-800/50">
+                ℹ️ Includes a 15-min grace period for entry/exit. Overstays are charged at standard hourly rates.
               </div>
 
               {/* Payment */}

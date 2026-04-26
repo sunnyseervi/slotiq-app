@@ -27,6 +27,35 @@
   display: flex;
 }
 
+/* Dark Mode Overrides for Admin Panel */
+.dark .admin-body {
+  --primary: #0A0A0A;
+  --bg-main: #000000;
+  --bg-card: #0A0A0A;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border: #1F2937;
+  --sidebar-bg: #000000;
+}
+
+.dark .admin-table th {
+  background-color: #0A0A0A;
+  border-bottom: 2px solid var(--border);
+}
+
+.dark .admin-table tr:hover td {
+  background-color: #111111;
+}
+
+.dark .admin-btn-outline {
+  background: transparent;
+  color: var(--text-main);
+}
+
+.dark .admin-btn-outline:hover {
+  background-color: #111111;
+}
+
 .admin-body h1, .admin-body h2, .admin-body h3, .admin-body h4, .admin-body .font-heading {
   font-family: 'Outfit', sans-serif;
 }
@@ -115,6 +144,10 @@
   background-color: #f8fafc;
 }
 
+.dark .admin-btn-outline:hover {
+  background-color: #111111;
+}
+
 /* ===== NAVIGATION ===== */
 .admin-nav-item {
   padding: 14px 24px;
@@ -171,6 +204,10 @@
 
 .admin-table tr:hover td {
   background-color: #F8FAFC;
+}
+
+.dark .admin-table tr:hover td {
+  background-color: #111111;
 }
 
 /* ===== STATUS BADGES ===== */

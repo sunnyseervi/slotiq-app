@@ -32,7 +32,7 @@ body {
 }
 
 .dark .app-shell {
-  background: #111827;
+  background: #000000;
 }
 
 .screen-content {
@@ -97,8 +97,8 @@ body {
   z-index: 50;
 }
 .dark .bottom-nav {
-  background: #1F2937;
-  border-top-color: #374151;
+  background: #0A0A0A;
+  border-top-color: #1A1A1A;
 }
 
 .nav-btn {
@@ -126,8 +126,8 @@ body {
   z-index: 40;
 }
 .dark .top-bar {
-  background: #1F2937;
-  border-bottom-color: #374151;
+  background: #0A0A0A;
+  border-bottom-color: #1A1A1A;
 }
 
 /* ===== CARDS ===== */
@@ -137,7 +137,7 @@ body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
 }
 .dark .card {
-  background: #1F2937;
+  background: #0A0A0A;
   box-shadow: 0 2px 12px rgba(0,0,0,0.3);
 }
 
@@ -255,10 +255,18 @@ body {
 .dark .text-gray-700 { color: #D1D5DB; }
 .dark .text-gray-600 { color: #9CA3AF; }
 .dark .text-gray-500 { color: #6B7280; }
-.dark .bg-white      { background-color: #1F2937; }
-.dark .bg-gray-50    { background-color: #111827; }
-.dark .bg-gray-100   { background-color: #374151; }
-.dark .border-gray-200 { border-color: #374151; }
+.dark .bg-white      { background-color: #0A0A0A; }
+.dark .bg-gray-50    { background-color: #000000; }
+.dark .bg-gray-100   { background-color: #111111; }
+.dark .border-gray-200 { border-color: #1A1A1A; }
+
+/* Enforce pure black on Tailwind dark classes */
+.dark .dark\:bg-gray-900 { background-color: #000000 !important; }
+.dark .dark\:bg-gray-800 { background-color: #0A0A0A !important; }
+.dark .dark\:bg-gray-700 { background-color: #111111 !important; }
+.dark .dark\:border-gray-800 { border-color: #1A1A1A !important; }
+.dark .dark\:border-gray-700 { border-color: #1A1A1A !important; }
+.dark .dark\:border-gray-600 { border-color: #222222 !important; }
 
 /* ===== MISC ===== */
 .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
@@ -284,7 +292,7 @@ input, textarea, select { font-family: 'Nunito', sans-serif; }
   animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
-.dark .modal-sheet { background: #1F2937; }
+.dark .modal-sheet { background: #0A0A0A; }
 
 /* ===== PROGRESS BAR ===== */
 .progress-bar { height: 3px; background: #F5620F; border-radius: 3px; transition: width 0.3s ease; }
@@ -311,7 +319,7 @@ input, textarea, select { font-family: 'Nunito', sans-serif; }
   line-height: 1.5;
   color: #111827;
 }
-.dark .chat-bubble-bot { background: #374151; color: #F9FAFB; }
+.dark .chat-bubble-bot { background: #111111; color: #F9FAFB; }
 .chat-bubble-user {
   background: #F5620F;
   border-radius: 16px 16px 4px 16px;

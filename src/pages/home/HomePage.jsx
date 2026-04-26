@@ -38,12 +38,12 @@ export default function HomePage() {
         <TopBar onLocationClick={() => setShowLoc(true)} />
 
         {/* Category tabs */}
-        <div className="flex gap-2 px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
           {activeTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setHomeTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-pill text-sm font-bold border-2 transition-all flex-shrink-0 ${
+              className={`flex-1 flex justify-center items-center gap-1.5 py-2 rounded-pill text-sm font-bold border-2 transition-all ${
                 homeTab === tab.id
                   ? 'bg-primary border-primary text-white'
                   : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'

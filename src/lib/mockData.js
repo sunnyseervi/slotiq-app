@@ -40,7 +40,16 @@ export const MOCK_HOST_SCHEDULE = [];
 export const LOCATIONS = {
   cities: ['Bengaluru','Mumbai','Delhi','Hyderabad','Pune'],
   areas: {
-    Bengaluru:  ['Koramangala','Indiranagar','Whitefield','HSR Layout','MG Road','Marathahalli','Electronic City','Jayanagar'],
+    Bengaluru:  [
+      'Koramangala','Indiranagar','Whitefield','HSR Layout','MG Road',
+      'Marathahalli','Electronic City','Jayanagar','JP Nagar','BTM Layout',
+      'Bellandur','Malleshwaram','Rajajinagar','Banashankari','Hebbal',
+      'Yelahanka','Kengeri','KR Puram','Banaswadi','Yeshwanthpur',
+      'Basavanagudi','Frazer Town','RT Nagar','Vidyaranyapura','Sanjaynagar',
+      'Kammanahalli','Mahadevapura','Domlur','CV Raman Nagar','Sahakarnagar',
+      'Sarjapur Road','Outer Ring Road','Kalyan Nagar','Malleswaram','Basaveshwaranagar',
+      'Jalahalli','Peenya','Dasarahalli','Nagarbhavi','Vijayanagar'
+    ],
     Mumbai:     ['Andheri','Bandra','Powai','Juhu','Dadar','Worli','Kurla','Thane'],
     Delhi:      ['Connaught Place','Lajpat Nagar','Karol Bagh','Dwarka','Rohini','Saket','Vasant Kunj','Nehru Place'],
     Hyderabad:  ['Banjara Hills','Jubilee Hills','Hitech City','Gachibowli','Kondapur','Madhapur','Secunderabad','Begumpet'],
@@ -58,12 +67,20 @@ export const AMENITY_ICONS = {
 };
 
 export const VEHICLE_TYPES = [
-  { value:'bike',  label:'Bike / Scooter', emoji:'🛵' },
-  { value:'car',   label:'Car (Sedan)',     emoji:'🚗' },
-  { value:'suv',   label:'SUV / Large Car', emoji:'🚙' },
-  { value:'truck', label:'Truck',           emoji:'🚛' },
-  { value:'bus',   label:'Bus',             emoji:'🚌' },
+  { value:'bike',  label:'Bike',  icon:'two_wheeler',     emoji:'🛵', color: 'from-blue-500 to-indigo-500' },
+  { value:'car',   label:'Car',   icon:'directions_car',  emoji:'🚗', color: 'from-orange-500 to-red-500' },
+  { value:'auto',  label:'Auto',  icon:'electric_rickshaw', emoji:'🛺', color: 'from-green-500 to-teal-500' },
+  { value:'truck', label:'Truck', icon:'local_shipping',  emoji:'🚛', color: 'from-rose-500 to-pink-500' },
+  { value:'bus',   label:'Bus',   icon:'directions_bus',  emoji:'🚌', color: 'from-amber-500 to-yellow-500' },
 ];
+
+export const FIXED_PRICING = {
+  bike:  { hourly: 10,  daily: 70,   weekly: 350,  monthly: 1000 },
+  car:   { hourly: 30,  daily: 200,  weekly: 1000, monthly: 3500 },
+  auto:  { hourly: 40,  daily: 250,  weekly: 1300, monthly: 4500 },
+  truck: { hourly: 120, daily: 800,  weekly: 4000, monthly: 13000 },
+  bus:   { hourly: 150, daily: 1000, weekly: 5000, monthly: 16000 },
+};
 
 // Utility
 export function formatInr(amount) {
@@ -100,14 +117,47 @@ export function calcBookingCost({ listing, pricing, passType, hours, vehicleType
     const gst = Math.round((base + platform) * 0.18);
     return { base, platform, gst, total: base + platform + gst };
   }
-  const pp = pricing;
-  if (!pp) return { base: 0, platform: 10, gst: 0, total: 10 };
+
+  // Parking Pricing Engine
+  const vType = vehicleType || 'car';
+  const rates = FIXED_PRICING[vType] || FIXED_PRICING.car;
+  
   let base = 0;
-  if (passType === 'hourly') base = (pp.hourly_min || 0) * (hours || 1);
-  else if (passType === 'daily') base = (pp.daily_min || 0);
-  else if (passType === 'weekly') base = (pp.weekly_min || 0);
-  else if (passType === 'monthly') base = (pp.monthly_min || 0);
+  let appliedCap = null;
+
+  if (passType === 'hourly') {
+    // Smart Pricing Logic: MIN(hourly, daily, weekly, monthly)
+    const h = hours || 1;
+    const days = Math.ceil(h / 24) || 1;
+    const weeks = Math.ceil(days / 7) || 1;
+    const months = Math.ceil(days / 30) || 1;
+
+    const costH = h * rates.hourly;
+    const costD = days * rates.daily;
+    const costW = weeks * rates.weekly;
+    const costM = months * rates.monthly;
+
+    base = costH;
+    
+    if (costD <= base) { base = costD; appliedCap = 'daily'; }
+    if (costW <= base) { base = costW; appliedCap = 'weekly'; }
+    if (costM <= base) { base = costM; appliedCap = 'monthly'; }
+    
+  } else if (passType === 'daily') {
+    base = rates.daily;
+  } else if (passType === 'weekly') {
+    base = rates.weekly;
+  } else if (passType === 'monthly') {
+    base = rates.monthly;
+  }
+
   const platform = 10;
   const gst = Math.round((base + platform) * 0.18);
-  return { base, platform, gst, total: base + platform + gst };
+  return { 
+    base, 
+    platform, 
+    gst, 
+    total: base + platform + gst,
+    appliedCap // undefined if no cap applied, or 'daily'/'weekly'/'monthly'
+  };
 }

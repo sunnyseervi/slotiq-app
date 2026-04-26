@@ -3,13 +3,26 @@ import { useStore } from '../../store/useStore'
 import { LOCATIONS } from '../../lib/mockData'
 
 export default function LocationModal({ onClose }) {
-  const { selectedCity, selectedArea, setLocation } = useStore()
+  const { selectedCity, selectedArea, setLocation, activeLocations } = useStore()
   const [city, setCity] = useState(selectedCity)
   const [search, setSearch] = useState('')
 
-  const areas = (LOCATIONS.areas[city] || []).filter(a =>
-    a.toLowerCase().includes(search.toLowerCase())
-  )
+  // Filter available cities based on admin settings
+  const availableCities = LOCATIONS.cities.filter(c => activeLocations?.cities?.[c])
+  
+  // Auto-switch city if the currently selected city is disabled
+  React.useEffect(() => {
+    if (!availableCities.includes(city) && availableCities.length > 0) {
+      setCity(availableCities[0])
+    }
+  }, [availableCities, city])
+
+  const areas = (LOCATIONS.areas[city] || []).filter(a => {
+    // Check if area matches search AND is active in admin settings
+    const matchesSearch = a.toLowerCase().includes(search.toLowerCase())
+    const isActive = activeLocations?.areas?.[city]?.[a]
+    return matchesSearch && isActive
+  })
 
   function handleArea(area) {
     setLocation(city, area)
@@ -40,7 +53,8 @@ export default function LocationModal({ onClose }) {
 
         {/* City pills */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
-          {LOCATIONS.cities.map(c => (
+          {availableCities.length === 0 && <span className="text-sm text-gray-500">No active cities available.</span>}
+          {availableCities.map(c => (
             <button
               key={c}
               onClick={() => { setCity(c); setSearch('') }}
@@ -59,7 +73,20 @@ export default function LocationModal({ onClose }) {
         <p className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-3">
           Areas in {city}
         </p>
+
+        <button
+          onClick={() => handleArea('Current Location')}
+          className={`w-full flex items-center justify-center gap-2 p-3 rounded-card border-2 text-sm font-bold transition-all mb-3 ${
+            selectedArea === 'Current Location' && selectedCity === city
+              ? 'border-primary bg-primary text-white'
+              : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-primary hover:text-primary'
+          }`}
+        >
+          <span className="text-lg">📍</span> Use GPS (Current Location)
+        </button>
+
         <div className="grid grid-cols-2 gap-2.5 pb-4">
+          {areas.length === 0 && <span className="text-sm text-gray-500 col-span-2">No active areas found in {city}.</span>}
           {areas.map(a => (
             <button
               key={a}

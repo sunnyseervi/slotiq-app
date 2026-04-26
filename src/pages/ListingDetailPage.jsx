@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { MapPin, PhoneCall } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
-import BottomNav from '../components/layout/BottomNav'
 import LocationModal from '../components/modals/LocationModal'
 import { useStore } from '../store/useStore'
 import { MOCK_LISTINGS, MOCK_PARKING_PRICING, MOCK_SPORTS_PRICING, MOCK_REVIEWS, AMENITY_ICONS, formatInr } from '../lib/mockData'
@@ -9,7 +9,7 @@ import { MOCK_LISTINGS, MOCK_PARKING_PRICING, MOCK_SPORTS_PRICING, MOCK_REVIEWS,
 export default function ListingDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { listings: storeListings, savedSpots, toggleSavedSpot } = useStore()
+  const { listings: storeListings, savedSpots, toggleSavedSpot, ads } = useStore()
   const [showLoc, setShowLoc] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [myRating, setMyRating] = useState(0)
@@ -51,17 +51,18 @@ export default function ListingDetailPage() {
         <TopBar onLocationClick={() => setShowLoc(true)} />
 
         {/* Hero Photo */}
-        <div className="relative h-52 flex items-center justify-center" style={{ background: photoBg }}>
-          <span className="text-8xl">{listing.thumbnail_emoji}</span>
+        <div className="relative h-64 flex flex-col items-center justify-center" style={{ background: photoBg }}>
+          <div className="absolute inset-0 bg-black/20" />
+          <span className="text-9xl drop-shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-500">{listing.thumbnail_emoji}</span>
 
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-3 left-3 w-9 h-9 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white text-sm font-bold"
+            className="absolute top-4 left-4 w-10 h-10 bg-black/30 hover:bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white text-xl font-bold transition-all z-20"
           >
             ←
           </button>
 
-          <div className="absolute top-3 right-3 flex items-center gap-2">
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
             <div className="bg-black/40 backdrop-blur-sm text-white/90 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider">
               {listing.sub_type}
             </div>
@@ -157,47 +158,45 @@ export default function ListingDetailPage() {
             )}
           </div>
 
-          {/* Stats */}
-          <div className="flex bg-gray-50 dark:bg-gray-700 rounded-card mb-4 divide-x divide-gray-200 dark:divide-gray-600">
-            <div className="flex-1 py-3 text-center">
-              <div className="text-lg font-black text-gray-900 dark:text-white">{listing.total_slots}</div>
-              <div className="text-[10px] text-muted font-semibold">Total Slots</div>
+          <div className="flex bg-gray-50 dark:bg-gray-700/50 rounded-2xl mb-6 p-1 border border-gray-100 dark:border-gray-700">
+            <div className="flex-1 py-4 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+              <div className="text-xl font-black text-gray-900 dark:text-white">{listing.total_slots}</div>
+              <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Total Slots</div>
             </div>
-            <div className="flex-1 py-3 text-center">
-              <div className="text-lg font-black text-hgreen">{listing.available_slots}</div>
-              <div className="text-[10px] text-muted font-semibold">Available</div>
+            <div className="flex-1 py-4 text-center">
+              <div className="text-xl font-black text-hgreen">{listing.available_slots}</div>
+              <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Available</div>
             </div>
-            <div className="flex-1 py-3 text-center">
-              <div className="text-lg font-black text-gray-900 dark:text-white">{listing.distance_km}km</div>
-              <div className="text-[10px] text-muted font-semibold">Distance</div>
+            <div className="flex-1 py-4 text-center">
+              <div className="text-xl font-black text-gray-900 dark:text-white">{listing.distance_km}km</div>
+              <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Distance</div>
             </div>
           </div>
 
-          {/* CTAs */}
-          <div className="flex gap-2 mb-4">
-            <button onClick={() => navigate(`/book/${listing.id}`)} className="btn-primary flex-1">
-              🕐 {isParking ? 'Book Now' : 'Book Slot'}
+          {/* Sticky Bottom Bar for CTAs */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg p-4 border-t border-gray-100 dark:border-gray-800 flex gap-3 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)] md:max-w-md md:mx-auto">
+            <button 
+              onClick={() => navigate(`/book/${listing.id}`)} 
+              className="btn-primary flex-1 text-lg py-4 shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-transform"
+            >
+              Book Now
             </button>
             <button
               onClick={() => window.open(`https://maps.google.com/?q=${listing.lat},${listing.lng}`, '_blank')}
-              className="btn-outline flex-1"
+              className="w-16 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center transition-transform active:scale-95 border border-blue-200 dark:border-blue-800"
             >
-              🧭 Navigate
+              <MapPin size={24} strokeWidth={2.5} />
             </button>
           </div>
 
-          {/* Phone */}
-          <a href={`tel:${listing.phone_number}`} className="flex items-center gap-3 py-3 border-t border-b border-gray-100 dark:border-gray-600 mb-4 text-sm font-bold text-gray-700 dark:text-gray-200">
-            <span>📞</span> {listing.phone_number || '+91 80 4444 1234'}
+          {/* Call Owner Button */}
+          <a 
+            href={`tel:${listing.phone_number || '+918044441234'}`} 
+            className="flex items-center justify-center gap-2 w-full py-3.5 bg-hgreen/10 hover:bg-hgreen/20 text-hgreen font-extrabold rounded-xl border border-hgreen/20 mb-6 transition-colors"
+          >
+            <PhoneCall size={20} />
+            Call Host Directly
           </a>
-
-          {/* Map */}
-          <div className="h-36 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-950 dark:to-blue-900 rounded-card mb-4 flex flex-col items-center justify-center gap-2 relative overflow-hidden cursor-pointer"
-            onClick={() => window.open(`https://maps.google.com/?q=${listing.lat},${listing.lng}`, '_blank')}>
-            <div className="text-3xl">📍</div>
-            <div className="text-sm font-bold text-blue-700 dark:text-blue-300">🗺️ Open in Google Maps</div>
-            <div className="absolute bottom-2 right-3 text-[10px] text-blue-500">{listing.lat}, {listing.lng}</div>
-          </div>
 
           {/* Amenities */}
           <div className="mb-4">
@@ -242,6 +241,25 @@ export default function ListingDetailPage() {
             </div>
           )}
 
+          {/* Advertisement Banner (Listing) */}
+          {ads?.listing?.active && ads.listing.url && (
+            <div className="mb-6">
+              <a 
+                href={ads.listing.link} 
+                target="_blank" 
+                rel="noreferrer"
+                className="block w-full h-28 rounded-2xl overflow-hidden shadow-sm transition-transform active:scale-95 relative border border-gray-100 dark:border-gray-800 bg-gray-100"
+              >
+                <div className="absolute top-2 right-2 bg-black/60 text-[8px] text-white/90 px-1.5 py-0.5 rounded uppercase tracking-widest z-10 backdrop-blur-sm">Ad</div>
+                {ads.listing.url.match(/\.(mp4|webm|mov)$/i) ? (
+                  <video src={ads.listing.url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                ) : (
+                  <img src={ads.listing.url} alt="Advertisement" className="w-full h-full object-cover" />
+                )}
+              </a>
+            </div>
+          )}
+
           {/* Reviews */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -269,11 +287,9 @@ export default function ListingDetailPage() {
           </div>
         </div>
 
-        {/* Spacer for bottom nav */}
-        <div className="h-20" />
+        {/* Spacer for bottom sticky nav */}
+        <div className="h-28" />
       </div>
-
-      <BottomNav />
 
       {/* Review Modal */}
       {showReviewForm && (

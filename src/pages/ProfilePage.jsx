@@ -4,7 +4,7 @@ import TopBar from '../components/layout/TopBar'
 import BottomNav from '../components/layout/BottomNav'
 import LocationModal from '../components/modals/LocationModal'
 import { useStore } from '../store/useStore'
-import { MOCK_BOOKINGS } from '../lib/mockData'
+import { VEHICLE_TYPES } from '../lib/mockData'
 
 function SettingsRow({ icon, label, value, badge, danger, toggle, toggleOn, onToggle, onClick, chevron = true }) {
   return (
@@ -30,23 +30,24 @@ function SettingsRow({ icon, label, value, badge, danger, toggle, toggleOn, onTo
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { currentUser, currentMode, setMode, logout, darkMode, toggleDarkMode, notifications, vehicles, addVehicle, savedSpots } = useStore()
+  const { currentUser, currentMode, setMode, logout, darkMode, toggleDarkMode, notifications, vehicles, addVehicle, savedSpots, bookings } = useStore()
   const [showLoc, setShowLoc] = useState(false)
   const [showVehicles, setShowVehicles] = useState(false)
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [showNotifs,   setShowNotifs]   = useState(false)
   
-  const [newVehicle, setNewVehicle] = useState({ type: 'car', nickname: '', plate_number: '' })
+  const [newVehicle, setNewVehicle] = useState({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
 
-  const bkCount = MOCK_BOOKINGS.length
+  const bkCount = bookings.length
   const savedCount = savedSpots.length
   const isHost = currentMode === 'host'
 
   function handleAddVehicle(e) {
     e.preventDefault()
+    if (!newVehicle.rc_picture) return alert('RC Picture is required')
     addVehicle(newVehicle)
     setShowAddVehicle(false)
-    setNewVehicle({ type: 'car', nickname: '', plate_number: '' })
+    setNewVehicle({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
   }
 
   function handleModeSwitch() {
@@ -150,14 +151,14 @@ export default function ProfilePage() {
                 <h4 className="text-sm font-bold mb-3 text-gray-800 dark:text-gray-200">New Vehicle</h4>
                 
                 <label className="block text-xs font-bold text-gray-500 mb-1">Vehicle Type</label>
-                <div className="flex gap-2 mb-3">
-                  {['car', 'bike'].map(type => (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {VEHICLE_TYPES.map(v => (
                     <button
-                      key={type} type="button"
-                      onClick={() => setNewVehicle({...newVehicle, type})}
-                      className={`flex-1 py-2 rounded-lg text-sm font-bold capitalize border ${newVehicle.type === type ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-200 dark:border-gray-600'}`}
+                      key={v.value} type="button"
+                      onClick={() => setNewVehicle({...newVehicle, type: v.value})}
+                      className={`flex-1 min-w-[30%] py-2 rounded-lg text-sm font-bold capitalize border ${newVehicle.type === v.value ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-200 dark:border-gray-600'}`}
                     >
-                      {type === 'car' ? '🚗 Car' : '🛵 Bike'}
+                      {v.emoji} {v.label}
                     </button>
                   ))}
                 </div>
@@ -175,6 +176,13 @@ export default function ProfilePage() {
                   value={newVehicle.nickname} onChange={e => setNewVehicle({...newVehicle, nickname: e.target.value})}
                   className="w-full mb-4 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:border-primary"
                   placeholder="e.g. My Honda City"
+                />
+
+                <label className="block text-xs font-bold text-gray-500 mb-1">RC Picture (Required)</label>
+                <input 
+                  type="file" accept="image/*" required
+                  onChange={e => setNewVehicle({...newVehicle, rc_picture: e.target.files[0]})}
+                  className="w-full mb-4 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-primary hover:file:bg-orange-100"
                 />
 
                 <div className="flex gap-2">

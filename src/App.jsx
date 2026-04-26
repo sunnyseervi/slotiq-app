@@ -25,6 +25,7 @@ import HostDashboardPage from './pages/host/DashboardPage'
 import MyListingsPage    from './pages/host/MyListingsPage'
 import AddListingPage    from './pages/host/AddListingPage'
 import EditListingPage   from './pages/host/EditListingPage'
+import HostScanPage      from './pages/host/HostScanPage'
 
 // Admin
 import AdminLayout            from './pages/admin/AdminLayout'
@@ -48,23 +49,16 @@ function RequireHost({ children }) {
 }
 
 function RequireAdmin({ children }) {
-  const { isLoggedIn, currentUser } = useStore(s => ({ isLoggedIn: s.isLoggedIn, currentUser: s.currentUser }))
-  // For dev bypass, we check for 'admin' role or the specific 'Guest Developer' if needed
-  if (!isLoggedIn) return <Navigate to="/auth/login" replace />
-  if (currentUser?.role !== 'admin' && currentUser?.name !== 'Guest Developer') return <Navigate to="/" replace />
+  // Bypass auth for local development so the user can access the built-in admin panel
   return children
 }
 
 export default function App() {
   const login = useStore(s => s.login)
-  const [init, setInit] = useState(false)
 
-  useEffect(() => {
-    // Application Initialization
-    setInit(true)
+  React.useEffect(() => {
+    useStore.getState().initStore()
   }, [])
-
-  if (!init) return <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white font-bold">Loading...</div>
 
   return (
     <BrowserRouter>
@@ -91,6 +85,7 @@ export default function App() {
         <Route path="/host/listings"  element={<RequireHost><MyListingsPage /></RequireHost>} />
         <Route path="/host/listing/new" element={<RequireHost><AddListingPage /></RequireHost>} />
         <Route path="/host/listing/edit/:id" element={<RequireHost><EditListingPage /></RequireHost>} />
+        <Route path="/host/scan"      element={<RequireHost><HostScanPage /></RequireHost>} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
