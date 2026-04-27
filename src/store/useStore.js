@@ -96,12 +96,12 @@ export const useStore = create((set, get) => ({
 
   // ── HYDRATION & SYNC ──────────────────────────────────
   async initStore() {
-    const user = get().currentUser
-    if (!user) return
-
-    // Fetch Listings
+    // Fetch Listings (Public)
     const { data: listings } = await supabase.from('listings').select('*')
     if (listings) set({ listings })
+
+    const user = get().currentUser
+    if (!user) return
 
     // Fetch Bookings (for current user)
     const { data: bookings } = await supabase.from('bookings').select('*').eq('customer_id', user.id)
@@ -110,6 +110,10 @@ export const useStore = create((set, get) => ({
     // Fetch Vehicles
     const { data: vehicles } = await supabase.from('vehicles').select('*').eq('user_id', user.id)
     if (vehicles) set({ vehicles })
+
+    // Fetch Saved Spots
+    const { data: saved } = await supabase.from('saved_spots').select('listing_id').eq('user_id', user.id)
+    if (saved) set({ savedSpots: saved.map(s => s.listing_id) })
   },
 
   async login(user) {
@@ -387,12 +391,23 @@ export const useStore = create((set, get) => ({
     get()._persist()
   },
 
-  toggleSavedSpot(id) {
-    set(s => {
-      const isSaved = s.savedSpots.includes(id)
-      return { savedSpots: isSaved ? s.savedSpots.filter(x => x !== id) : [...s.savedSpots, id] }
-    })
+  async toggleSavedSpot(id) {
+    const user = get().currentUser
+    const isSaved = get().savedSpots.includes(id)
+
+    // Optimistic UI update
+    set(s => ({
+      savedSpots: isSaved ? s.savedSpots.filter(x => x !== id) : [...s.savedSpots, id]
+    }))
     get()._persist()
+
+    if (user?.id && !user.id.startsWith('temp-')) {
+      if (isSaved) {
+        await supabase.from('saved_spots').delete().eq('user_id', user.id).eq('listing_id', id)
+      } else {
+        await supabase.from('saved_spots').insert([{ user_id: user.id, listing_id: id }])
+      }
+    }
   },
 
   async addBooking(booking) {
