@@ -134,6 +134,28 @@ export default function LoginPage() {
           >
             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
           </button>
+
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100 dark:border-gray-800"></div></div>
+            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest text-gray-400 bg-white dark:bg-gray-900 px-4">OR</div>
+          </div>
+
+          <button 
+            onClick={async () => {
+              const { error } = await supabase.auth.signInWithOAuth({ 
+                provider: 'google',
+                options: {
+                  redirectTo: window.location.origin
+                }
+              })
+              if (error) alert(error.message)
+            }}
+            className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl py-4 text-sm font-bold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-lg shadow-gray-100 dark:shadow-none active:scale-[0.98]"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+            Continue with Google
+          </button>
         </div>
 
         <p className="text-xs text-gray-400 mt-10 text-center px-6 leading-relaxed">
