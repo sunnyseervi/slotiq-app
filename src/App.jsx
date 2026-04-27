@@ -35,6 +35,8 @@ import AdminBookingList       from './pages/admin/AdminBookingList'
 import AdminGlobalSettings    from './pages/admin/AdminGlobalSettings'
 import AdminUserManagement      from './pages/admin/AdminUserManagement'
 
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+
 function RequireAuth({ children }) {
   const isLoggedIn = useStore(s => s.isLoggedIn)
   if (!isLoggedIn) return <Navigate to="/auth/login" replace />
@@ -49,7 +51,8 @@ function RequireHost({ children }) {
 }
 
 function RequireAdmin({ children }) {
-  // Bypass auth for local development so the user can access the built-in admin panel
+  const isAdminAuthenticated = useStore(s => s.isAdminAuthenticated)
+  if (!isAdminAuthenticated) return <AdminLoginPage />
   return children
 }
 

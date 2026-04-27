@@ -10,6 +10,7 @@ export const useStore = create((set, get) => ({
   // Auth
   isLoggedIn:    stored.isLoggedIn !== undefined ? stored.isLoggedIn : true,
   currentUser:   stored.currentUser || MOCK_USER,
+  isAdminAuthenticated: stored.isAdminAuthenticated || false,
 
   // Mode: 'customer' | 'host'
   currentMode:   stored.currentMode || 'customer',
@@ -118,9 +119,26 @@ export const useStore = create((set, get) => ({
     await get().initStore()
   },
 
+  loginAdmin(email, password) {
+    const ADMIN_EMAIL = 'theslotiq@gmail.com'
+    const ADMIN_PASS = 'Sl0tIQ_Admin_#2026_!Zq9*v'
+    
+    if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+      set({ isAdminAuthenticated: true })
+      get()._persist()
+      return true
+    }
+    return false
+  },
+
+  logoutAdmin() {
+    set({ isAdminAuthenticated: false })
+    get()._persist()
+  },
+
   logout() {
     localStorage.removeItem('slotiq_state')
-    set({ isLoggedIn: false, currentUser: null, currentMode: 'customer' })
+    set({ isLoggedIn: false, currentUser: null, currentMode: 'customer', isAdminAuthenticated: false })
   },
 
   // USER MANAGEMENT

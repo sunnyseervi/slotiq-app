@@ -14,6 +14,7 @@ import { useStore } from '../store/useStore'
 import { formatInr } from '../lib/mockData'
 import { calculateFromTimes } from '../lib/pricingEngine'
 import { makeLocationQR, handleLocationScan } from '../lib/qrEngine'
+import { Html5QrcodeScanner } from 'html5-qrcode'
 
 // ── Rates (in future, come from listing) ──────────────────────
 const RATES  = { hourly: 20, daily: 200 }
@@ -112,6 +113,32 @@ export default function ScanParkPage() {
       })
     }, 1000)
     return () => clearInterval(timerRef.current)
+  }, [phase])
+
+  // ── Real Camera Scanner ────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'scan_entry' && phase !== 'scan_exit') return
+
+    const scanner = new Html5QrcodeScanner('reader', {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      rememberLastUsedCamera: true,
+      supportedScanTypes: [0] // Camera only
+    })
+
+    scanner.render(
+      (decodedText) => {
+        scanner.clear()
+        handleScan(decodedText)
+      },
+      (error) => {
+        // Just log errors, don't alert as it happens every frame if no QR
+      }
+    )
+
+    return () => {
+      scanner.clear().catch(e => console.warn('Scanner cleanup failed', e))
+    }
   }, [phase])
 
   // ── Demo fast-forward ──────────────────────────────────────
@@ -232,24 +259,19 @@ export default function ScanParkPage() {
               </div>
             )}
 
-            {/* Demo QR viewfinder + auto-detect */}
-            <div className="relative">
-              <div className="w-56 h-56 border-4 border-primary rounded-2xl flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-gray-800">
-                <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-2xl z-10" />
-                <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-2xl z-10" />
-                <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-2xl z-10" />
-                <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-2xl z-10" />
-                {/* Laser sweep */}
-                <div className="absolute inset-x-4 h-0.5 bg-primary/70 rounded animate-bounce" style={{ top: '50%' }} />
-                <div className="text-center z-10">
-                  <div className="text-4xl mb-2">📷</div>
-                  <div className="text-xs text-muted font-semibold">Scanning…</div>
-                  <div className="flex gap-1 justify-center mt-2">
-                    {[0, 0.15, 0.3].map(d => (
-                      <div key={d} className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />
-                    ))}
-                  </div>
-                </div>
+            {/* Real Camera viewfinder */}
+            <div className="relative w-full max-w-[320px] aspect-square overflow-hidden rounded-3xl border-4 border-primary shadow-2xl bg-black">
+              <div id="reader" className="w-full h-full"></div>
+              
+              {/* Overlay guides */}
+              <div className="absolute inset-0 pointer-events-none z-10">
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl m-4" />
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl m-4" />
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl m-4" />
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl m-4" />
+                
+                {/* Scanning line animation */}
+                <div className="absolute inset-x-8 h-0.5 bg-primary/80 blur-[1px] animate-scan" style={{ top: '50%' }} />
               </div>
             </div>
 
@@ -510,6 +532,46 @@ export default function ScanParkPage() {
           </div>
         )}
 
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes scan {
+            0%, 100% { transform: translateY(-120px); opacity: 0; }
+            50% { transform: translateY(120px); opacity: 1; }
+          }
+          .animate-scan {
+            animation: scan 3s linear infinite;
+          }
+
+          #reader {
+            border: none !important;
+            background: black !important;
+          }
+          #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 20px !important;
+          }
+          #reader__dashboard_section_csr button {
+            background: #F5620F !important;
+            color: white !important;
+            border: none !important;
+            padding: 10px 20px !important;
+            border-radius: 12px !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            font-size: 12px !important;
+            cursor: pointer !important;
+            margin: 15px 0 !important;
+            box-shadow: 0 4px 12px rgba(245, 98, 15, 0.3) !important;
+          }
+          #reader__status_span {
+            display: none !important;
+          }
+          #reader__scan_region {
+            background: transparent !important;
+          }
+        `}} />
       </div>
     </div>
   )

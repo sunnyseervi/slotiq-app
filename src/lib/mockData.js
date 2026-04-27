@@ -1,5 +1,5 @@
-// src/lib/mockData.js
 // Production Seed Data — SlotIQ
+import { calculateDynamicPrice } from './pricingEngine'
 
 export const MOCK_USER = {
   id: 'u-sunil-001',
@@ -118,46 +118,26 @@ export function calcBookingCost({ listing, pricing, passType, hours, vehicleType
     return { base, platform, gst, total: base + platform + gst };
   }
 
-  // Parking Pricing Engine
+  // Parking Pricing Engine (Centralized)
   const vType = vehicleType || 'car';
   const rates = FIXED_PRICING[vType] || FIXED_PRICING.car;
   
-  let base = 0;
-  let appliedCap = null;
-
-  if (passType === 'hourly') {
-    // Smart Pricing Logic: MIN(hourly, daily, weekly, monthly)
-    const h = hours || 1;
-    const days = Math.ceil(h / 24) || 1;
-    const weeks = Math.ceil(days / 7) || 1;
-    const months = Math.ceil(days / 30) || 1;
-
-    const costH = h * rates.hourly;
-    const costD = days * rates.daily;
-    const costW = weeks * rates.weekly;
-    const costM = months * rates.monthly;
-
-    base = costH;
-    
-    if (costD <= base) { base = costD; appliedCap = 'daily'; }
-    if (costW <= base) { base = costW; appliedCap = 'weekly'; }
-    if (costM <= base) { base = costM; appliedCap = 'monthly'; }
-    
-  } else if (passType === 'daily') {
-    base = rates.daily;
-  } else if (passType === 'weekly') {
-    base = rates.weekly;
-  } else if (passType === 'monthly') {
-    base = rates.monthly;
-  }
+  const result = calculateDynamicPrice({
+    durationMins: (hours || 1) * 60,
+    rates: {
+      hourly: rates.hourly,
+      daily: rates.daily
+    }
+  })
 
   const platform = 10;
-  const gst = Math.round((base + platform) * 0.18);
+  const gst = Math.round((result.totalCost + platform) * 0.18);
+  
   return { 
-    base, 
+    base: result.totalCost, 
     platform, 
     gst, 
-    total: base + platform + gst,
-    appliedCap // undefined if no cap applied, or 'daily'/'weekly'/'monthly'
+    total: result.totalCost + platform + gst,
+    appliedCap: result.appliedCap
   };
 }
