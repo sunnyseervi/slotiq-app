@@ -1,34 +1,76 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { useStore } from '../../store/useStore'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [phone, setPhone] = useState('')
+  const login = useStore(s => s.login)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
 
-  async function handleLogin(e) {
+  async function handleAuth(e) {
     e.preventDefault()
-    if (phone.length !== 10) {
-      alert("Please enter a valid 10-digit phone number")
-      return
-    }
     setLoading(true)
     
-    // REAL SUPABASE WHATSAPP AUTH
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+91${phone}`,
-      options: {
-        channel: 'whatsapp'
-      }
-    })
-
-    setLoading(false)
-    if (error) {
-      alert("Real OTP Error: " + error.message + "\n\nNote: You must configure Twilio in Supabase -> Auth -> Providers -> Phone to use WhatsApp channel.")
+    let result;
+    if (isSignUp) {
+      result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: 'New User'
+          }
+        }
+      })
     } else {
-      navigate('/auth/otp', { state: { phone } })
+      result = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
     }
+
+    const { data, error } = result
+
+    if (error) {
+      alert(error.message)
+      setLoading(false)
+      return
+    }
+
+    if (isSignUp && !data.session) {
+      alert("Verification email sent! Please check your inbox.")
+      setLoading(false)
+      return
+    }
+
+    if (data.user) {
+      // Fetch profile data
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+
+      login({
+        id: data.user.id,
+        name: profile?.full_name || 'User',
+        email: data.user.email,
+        phone: profile?.phone || '',
+        mode: profile?.role || 'customer',
+        role: profile?.role || 'customer'
+      })
+
+      if (!profile) {
+        navigate('/auth/onboarding', { replace: true })
+      } else {
+        navigate('/', { replace: true })
+      }
+    }
+    setLoading(false)
   }
 
   return (
@@ -51,40 +93,47 @@ export default function LoginPage() {
         {/* Auth Card */}
         <div className="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-[32px] border border-gray-100 dark:border-gray-700">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
-            Welcome Back
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-            Get your secure OTP via WhatsApp
+            {isSignUp ? 'Join SlotIQ today' : 'Login to your account'}
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleAuth} className="space-y-4">
             <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Mobile Number</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">+91</span>
-                <input 
-                  type="tel" required maxLength={10}
-                  value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))}
-                  className="w-full pl-14 pr-4 py-4 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-base focus:border-primary transition-all dark:text-white"
-                  placeholder="92575 90511"
-                />
-              </div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Email Address</label>
+              <input 
+                type="email" required
+                value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-sm focus:border-primary transition-all dark:text-white"
+                placeholder="sunny@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Password</label>
+              <input 
+                type="password" required minLength={6}
+                value={password} onChange={e => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-sm focus:border-primary transition-all dark:text-white"
+                placeholder="••••••••"
+              />
             </div>
 
             <button 
-              type="submit" disabled={loading || phone.length < 10}
-              className="w-full bg-[#25D366] text-white rounded-2xl py-4 text-base font-black hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-green-100 dark:shadow-none disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+              type="submit" disabled={loading}
+              className="w-full bg-primary text-white rounded-2xl py-4 text-base font-black hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-orange-100 dark:shadow-none disabled:opacity-50 mt-4"
             >
-              {loading ? (
-                'Connecting...'
-              ) : (
-                <>
-                  <span className="text-xl">💬</span>
-                  Get OTP via WhatsApp
-                </>
-              )}
+              {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
             </button>
           </form>
+
+          <button 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="w-full mt-6 text-sm font-bold text-primary hover:underline"
+          >
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          </button>
         </div>
 
         <p className="text-xs text-gray-400 mt-10 text-center px-6 leading-relaxed">

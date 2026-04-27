@@ -477,3 +477,10 @@ window.addEventListener('storage', (e) => {
     } catch (err) {}
   }
 })
+
+// Realtime sync from Admin Panel via Supabase Broadcast
+supabase.channel('global_settings')
+  .on('broadcast', { event: 'settings_update' }, (payload) => {
+    useStore.setState(payload.payload)
+  })
+  .subscribe()

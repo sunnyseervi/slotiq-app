@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 import { supabase } from '../../lib/supabase'
+import { msg91 } from '../../lib/msg91'
 
 export default function OTPPage() {
   const [otp,     setOtp]     = useState(['','','','','',''])
@@ -40,27 +41,40 @@ export default function OTPPage() {
     setLoading(true)
     setErr('')
     
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: `+91${phone}`,
-      token: val,
-      type: 'sms' // Supabase uses 'sms' type even for WhatsApp channel verification
-    })
+    // MSG91 VERIFY OTP
+    const { success, message } = await msg91.verifyOTP(phone, val)
 
-    if (error) {
-      setErr(error.message)
+    if (!success) {
+      setErr(message)
       setLoading(false)
     } else {
-      // Map Supabase user to our local store
-      const u = data.user
-      login({
-        id: u.id,
-        name: u.user_metadata?.full_name || 'New User',
-        phone: u.phone,
-        email: u.email,
-        mode: 'customer',
-        role: 'customer'
-      })
-      navigate('/', { replace: true })
+      // Fetch or Create User in our Supabase 'profiles' or 'users' table
+      // For now, we'll search by phone
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', `+91${phone}`)
+        .single()
+
+      if (userData) {
+        login({
+          id: userData.id,
+          name: userData.full_name || 'User',
+          phone: userData.phone,
+          email: userData.email,
+          mode: userData.role || 'customer',
+          role: userData.role || 'customer'
+        })
+        navigate('/', { replace: true })
+      } else {
+        // New User - Redirect to Onboarding
+        login({
+          id: 'temp-' + Date.now(),
+          phone: `+91${phone}`,
+          mode: 'customer'
+        })
+        navigate('/auth/onboarding', { replace: true })
+      }
     }
   }
 
@@ -73,10 +87,10 @@ export default function OTPPage() {
         </button>
 
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">💬</div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">WhatsApp OTP</h1>
+          <div className="text-4xl mb-3">📱</div>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">Enter OTP</h1>
           <p className="text-sm text-muted">
-            Sent to WhatsApp on <span className="font-bold text-gray-700 dark:text-gray-200">+91 {phone}</span>
+            Sent via SMS to <span className="font-bold text-gray-700 dark:text-gray-200">+91 {phone}</span>
           </p>
         </div>
 
@@ -108,15 +122,15 @@ export default function OTPPage() {
 
         <button
           disabled={timer > 0}
-          onClick={() => setTimer(30)}
+          onClick={async () => {
+            const ok = await msg91.resendOTP(phone)
+            if (ok) setTimer(30)
+            else alert("Failed to resend OTP")
+          }}
           className={`text-sm font-bold ${timer > 0 ? 'text-gray-400' : 'text-primary'}`}
         >
           {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
         </button>
-
-        <div className="mt-6 p-3 bg-orange-50 dark:bg-orange-950 rounded-xl text-xs text-orange-700 dark:text-orange-300 font-semibold text-center">
-          🔑 Dev: OTP is always <strong>123456</strong>
-        </div>
       </div>
     </div>
   )

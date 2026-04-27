@@ -68,7 +68,6 @@ export default function App() {
       <Routes>
         {/* Auth */}
         <Route path="/auth/login"            element={<LoginPage />} />
-        <Route path="/auth/otp"              element={<OTPPage />} />
         <Route path="/auth/onboarding"       element={<OnboardingPage />} />
         <Route path="/auth/complete-profile" element={<CompleteProfilePage />} />
 

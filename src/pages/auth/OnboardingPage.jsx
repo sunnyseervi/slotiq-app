@@ -11,12 +11,41 @@ export default function OnboardingPage() {
   const [nick,    setNick]    = useState('')
   const [city,    setCity]    = useState('Bengaluru')
   const [area,    setArea]    = useState('Koramangala')
-  const { updateUserField, setLocation } = useStore()
+  const { updateUserField, setLocation, currentUser } = useStore()
   const navigate = useNavigate()
 
-  function finish() {
+  async function finish() {
+    if (!currentUser?.id) return
+
+    const profileData = {
+      id: currentUser.id,
+      full_name: name,
+      city: city,
+      area: area,
+      email: currentUser.email,
+      role: 'customer'
+    }
+
+    // Save to Supabase
+    const { error } = await supabase.from('users').upsert([profileData])
+    
+    if (error) {
+      console.error('Error saving profile:', error.message)
+    }
+
     if (name) updateUserField('name', name)
     setLocation(city, area)
+    
+    // Add vehicle if plate is provided
+    if (plate) {
+      await supabase.from('vehicles').insert([{
+        user_id: currentUser.id,
+        type: vType,
+        plate_number: plate,
+        nickname: nick || name + "'s Vehicle"
+      }])
+    }
+
     navigate('/', { replace: true })
   }
 

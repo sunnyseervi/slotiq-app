@@ -35,6 +35,8 @@ export default function ProfilePage() {
   const [showVehicles, setShowVehicles] = useState(false)
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [showNotifs,   setShowNotifs]   = useState(false)
+  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
+  const [nextMode, setNextMode] = useState('')
   
   const [newVehicle, setNewVehicle] = useState({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
 
@@ -52,8 +54,14 @@ export default function ProfilePage() {
 
   function handleModeSwitch() {
     const next = isHost ? 'customer' : 'host'
-    setMode(next)
-    navigate(next === 'host' ? '/host/dashboard' : '/')
+    setNextMode(next)
+    setShowSwitchConfirm(true)
+  }
+
+  function confirmModeSwitch() {
+    setMode(nextMode)
+    setShowSwitchConfirm(false)
+    navigate(nextMode === 'host' ? '/host/dashboard' : '/')
   }
 
   return (
@@ -222,6 +230,39 @@ export default function ProfilePage() {
       )}
 
       {showLoc && <LocationModal onClose={() => setShowLoc(false)} />}
+
+      {/* Mode Switch Confirmation Modal */}
+      {showSwitchConfirm && (
+        <div className="modal-overlay" onClick={() => setShowSwitchConfirm(false)} style={{ zIndex: 1000 }}>
+          <div className="modal-sheet p-6" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-6" />
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                {nextMode === 'host' ? '🏢' : '🚗'}
+              </div>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">Switch to {nextMode?.toUpperCase()}?</h3>
+              <p className="text-sm text-muted px-4 leading-relaxed">
+                Are you sure you want to switch to {nextMode} mode? You can switch back anytime from your profile settings.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowSwitchConfirm(false)}
+                className="flex-1 py-4 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-extrabold text-sm active:scale-95 transition-all"
+              >
+                No, Stay
+              </button>
+              <button 
+                onClick={confirmModeSwitch}
+                className="flex-[2] py-4 rounded-2xl bg-primary text-white font-extrabold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all"
+              >
+                Yes, Switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
