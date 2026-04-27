@@ -1,76 +1,31 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useStore } from '../../store/useStore'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const login = useStore(s => s.login)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
 
-  async function handleAuth(e) {
+  async function handleLogin(e) {
     e.preventDefault()
+    if (phone.length !== 10) {
+      alert("Please enter a valid 10-digit phone number")
+      return
+    }
     setLoading(true)
     
-    let result;
-    if (isSignUp) {
-      result = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: 'New User'
-          }
-        }
-      })
-    } else {
-      result = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-    }
+    // SUPABASE SMS AUTH
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: `+91${phone}`
+    })
 
-    const { data, error } = result
-
-    if (error) {
-      alert(error.message)
-      setLoading(false)
-      return
-    }
-
-    if (isSignUp && !data.session) {
-      alert("Verification email sent! Please check your inbox.")
-      setLoading(false)
-      return
-    }
-
-    if (data.user) {
-      // Fetch profile data
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single()
-
-      login({
-        id: data.user.id,
-        name: profile?.full_name || 'User',
-        email: data.user.email,
-        phone: profile?.phone || '',
-        mode: profile?.role || 'customer',
-        role: profile?.role || 'customer'
-      })
-
-      if (!profile) {
-        navigate('/auth/onboarding', { replace: true })
-      } else {
-        navigate('/', { replace: true })
-      }
-    }
     setLoading(false)
+    if (error) {
+      alert("Real OTP Error: " + error.message + "\n\nNote: You must configure MSG91 in Supabase -> Auth -> Providers -> Phone to use SMS OTP.")
+    } else {
+      navigate('/auth/otp', { state: { phone } })
+    }
   }
 
   return (
@@ -93,69 +48,40 @@ export default function LoginPage() {
         {/* Auth Card */}
         <div className="bg-gray-50 dark:bg-gray-800/50 p-8 rounded-[32px] border border-gray-100 dark:border-gray-700">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+            Welcome Back
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-            {isSignUp ? 'Join SlotIQ today' : 'Login to your account'}
+            Login with your mobile number
           </p>
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Email Address</label>
-              <input 
-                type="email" required
-                value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-sm focus:border-primary transition-all dark:text-white"
-                placeholder="sunny@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Password</label>
-              <input 
-                type="password" required minLength={6}
-                value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-sm focus:border-primary transition-all dark:text-white"
-                placeholder="••••••••"
-              />
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Mobile Number</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">+91</span>
+                <input 
+                  type="tel" required maxLength={10}
+                  value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))}
+                  className="w-full pl-14 pr-4 py-4 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-2xl outline-none font-bold text-base focus:border-primary transition-all dark:text-white"
+                  placeholder="92575 90511"
+                />
+              </div>
             </div>
 
             <button 
-              type="submit" disabled={loading}
-              className="w-full bg-primary text-white rounded-2xl py-4 text-base font-black hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-orange-100 dark:shadow-none disabled:opacity-50 mt-4"
+              type="submit" disabled={loading || phone.length < 10}
+              className="w-full bg-[#25D366] text-white rounded-2xl py-4 text-base font-black hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-green-100 dark:shadow-none disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
             >
-              {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+              {loading ? (
+                'Connecting...'
+              ) : (
+                <>
+                  <span className="text-xl">📱</span>
+                  Get OTP via SMS
+                </>
+              )}
             </button>
           </form>
-
-          <button 
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full mt-6 text-sm font-bold text-primary hover:underline"
-          >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-          </button>
-
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100 dark:border-gray-800"></div></div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest text-gray-400 bg-white dark:bg-gray-900 px-4">OR</div>
-          </div>
-
-          <button 
-            onClick={async () => {
-              const { error } = await supabase.auth.signInWithOAuth({ 
-                provider: 'google',
-                options: {
-                  redirectTo: window.location.origin
-                }
-              })
-              if (error) alert(error.message)
-            }}
-            className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl py-4 text-sm font-bold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-lg shadow-gray-100 dark:shadow-none active:scale-[0.98]"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-            Continue with Google
-          </button>
         </div>
 
         <p className="text-xs text-gray-400 mt-10 text-center px-6 leading-relaxed">

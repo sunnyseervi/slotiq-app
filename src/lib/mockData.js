@@ -2,16 +2,15 @@
 import { calculateDynamicPrice } from './pricingEngine'
 
 export const MOCK_USER = {
-  id: 'u-sunil-001',
-  name: 'Sunil Seervi',
-  phone: '+91 92575 90511',
-  email: 'sunil@slotiq.in',
-  avatar_initial: 'S',
-  avatar_color: '#F5620F',
+  id: 'guest-' + Date.now(),
+  name: '',
+  phone: '',
+  email: '',
+  avatar_initial: 'G',
+  avatar_color: '#9CA3AF',
   mode: 'customer',
-  role: 'admin', // Set as Admin for first-time use
-  host_id: 'HOST001',
-  member_tier: 'member',
+  role: 'guest',
+  member_tier: 'none',
   wallet_balance: 0,
   language: 'EN',
   dark_mode: false,
@@ -111,8 +110,8 @@ export function randomCode() {
 export function calcBookingCost({ listing, pricing, passType, hours, vehicleType }) {
   if (listing.type === 'sports') {
     const sp = pricing;
-    if (!sp) return { base: 0, platform: 10, gst: 0, total: 10 };
-    const base = (sp.base_price_per_hour || 0) * (hours || 1);
+    const baseRate = sp?.base_price_per_hour || listing.base_rate_per_hour || 0;
+    const base = baseRate * (hours || 1);
     const platform = 10;
     const gst = Math.round((base + platform) * 0.18);
     return { base, platform, gst, total: base + platform + gst };
@@ -120,13 +119,15 @@ export function calcBookingCost({ listing, pricing, passType, hours, vehicleType
 
   // Parking Pricing Engine (Centralized)
   const vType = vehicleType || 'car';
-  const rates = FIXED_PRICING[vType] || FIXED_PRICING.car;
+  const rates = pricing || FIXED_PRICING[vType] || FIXED_PRICING.car;
+  const hourlyRate = rates.hourly_min || rates.hourly || listing.base_rate_per_hour || 30;
+  const dailyRate = rates.daily_min || rates.daily || (hourlyRate * 8); // Fallback daily
   
   const result = calculateDynamicPrice({
     durationMins: (hours || 1) * 60,
     rates: {
-      hourly: rates.hourly,
-      daily: rates.daily
+      hourly: hourlyRate,
+      daily: dailyRate
     }
   })
 

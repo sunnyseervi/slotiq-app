@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MOCK_LISTINGS, MOCK_SPORTS_PRICING } from '../../lib/mockData'
+import { useStore } from '../../store/useStore'
+import { MOCK_SPORTS_PRICING } from '../../lib/mockData'
 
 const SPORT_FILTERS = [
   { id: 'all',        label: 'All',        emoji: '⚡' },
@@ -19,13 +20,14 @@ const DAY_FILTERS = [
 
 export default function SportsTab() {
   const navigate   = useNavigate()
+  const { listings: storeListings } = useStore()
   const [sport, setSport] = useState('all')
   const [day,   setDay]   = useState('today')
   const [query, setQuery] = useState('')
 
   const listings = useMemo(() => {
-    let all = MOCK_LISTINGS.filter(l => l.type === 'sports' && l.is_live)
-    if (sport !== 'all') all = all.filter(l => l.sub_type === sport)
+    let all = storeListings.filter(l => l.type === 'sports' && (l.is_live || l.status === 'active'))
+    if (sport !== 'all') all = all.filter(l => (l.sub_type || l.subType) === sport)
     if (query) {
       const q = query.toLowerCase()
       all = all.filter(l => l.name.toLowerCase().includes(q) || l.area.toLowerCase().includes(q))
@@ -35,7 +37,7 @@ export default function SportsTab() {
 
   function getPrice(l) {
     const sp = MOCK_SPORTS_PRICING.find(p => p.listing_id === l.id)
-    return sp ? sp.base_price_per_hour : 500
+    return sp ? sp.base_price_per_hour : (l.base_rate_per_hour || 500)
   }
 
   return (
@@ -116,13 +118,13 @@ export default function SportsTab() {
                 <div className="flex-1 min-w-0">
                   <div className="font-extrabold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">{l.name}</div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <span>⭐ {l.rating}</span>
+                    <span>⭐ {l.rating || '4.8'}</span>
                     <span>·</span>
-                    <span>{l.distance_km}km</span>
+                    <span>{l.distance_km != null ? l.distance_km : '—'}km</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-xs font-bold text-hgreen">
                     <div className="w-2 h-2 bg-hgreen rounded-full" />
-                    {day === 'today' ? l.available_slots : Math.max(1, l.available_slots - 1)} slots {day}
+                    {(l.available_slots ?? l.total_slots ?? '—')} slots {day}
                   </div>
                   {l.special_note && (
                     <div className="mt-1 text-[11px] font-extrabold text-primary flex items-center gap-1">

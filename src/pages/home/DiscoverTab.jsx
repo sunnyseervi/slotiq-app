@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useStore } from '../../store/useStore'
 import { MOCK_DISCOVER } from '../../lib/mockData'
 
 const CATEGORIES = [
@@ -18,18 +19,45 @@ const UTILS = [
 
 export default function DiscoverTab() {
   const navigate = useNavigate()
+  const { listings: storeListings } = useStore()
   const [query,  setQuery]  = useState('')
   const [filter, setFilter] = useState('all')
 
+  // Merge store discover listings with mock data
   const places = useMemo(() => {
-    let all = MOCK_DISCOVER
+    const storeDiscover = storeListings
+      .filter(l => l.type === 'discover' && (l.is_live || l.status === 'active'))
+      .map(l => ({
+        id: l.id,
+        name: l.name,
+        category: l.category || 'restaurant',
+        emoji: l.thumbnail_emoji || '📍',
+        address: l.address || l.area || '',
+        rating: l.rating || 4.5,
+        review_count: l.review_count || 100,
+        is_open: l.is_open ?? true,
+        bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+      }))
+
+    let all = [...MOCK_DISCOVER, ...storeDiscover]
     if (filter !== 'all') all = all.filter(p => p.category === filter)
     if (query) {
       const q = query.toLowerCase()
-      all = all.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+      all = all.filter(p => p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q))
     }
     return all
-  }, [filter, query])
+  }, [storeListings, filter, query])
+
+  // Compute live counts from store
+  const liveCounts = useMemo(() => {
+    const disc = storeListings.filter(l => l.type === 'discover' && (l.is_live || l.status === 'active'))
+    return {
+      restaurant: disc.filter(l => l.category === 'restaurant').length,
+      cafe: disc.filter(l => l.category === 'cafe').length,
+      bar: disc.filter(l => l.category === 'bar').length,
+      mall: disc.filter(l => l.category === 'mall').length,
+    }
+  }, [storeListings])
 
   return (
     <div className="pb-6">

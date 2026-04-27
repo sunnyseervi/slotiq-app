@@ -66,7 +66,7 @@ export default function ParkingTab() {
   }, [])
 
   const listings = useMemo(() => {
-    let all = storeListings.filter(l => l.type === 'parking' && l.is_live).map(l => {
+    let all = storeListings.filter(l => l.type === 'parking' && (l.is_live || l.status === 'active')).map(l => {
       // Calculate dynamic distance based on actual user location (only if using GPS)
       if (l.lat && l.lng && userLocation && selectedArea === 'Current Location') {
         return { ...l, distance_km: getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, l.lat, l.lng) }
@@ -86,7 +86,8 @@ export default function ParkingTab() {
     }
 
     // Vehicle compatibility and distance filter
-    all = all.filter(l => l.distance_km <= maxDist)
+    // If a listing has no distance_km yet (new admin listing), include it by default
+    all = all.filter(l => l.distance_km == null || l.distance_km <= maxDist)
     
     // For now, mock the logic that larger vehicles (truck/bus) can't enter basements
     if (['truck', 'bus'].includes(selectedVehicle)) {
@@ -312,14 +313,14 @@ export default function ParkingTab() {
               <div className="flex-1 min-w-0">
                 <div className="font-extrabold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">{l.name}</div>
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                  <span>⭐ {l.rating}</span>
+                  <span>⭐ {l.rating || '4.8'}</span>
                   <span>·</span>
-                  <span>{l.distance_km}km away</span>
-                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full capitalize">{l.sub_type}</span>
+                  <span>{l.distance_km != null ? l.distance_km : '—'}km away</span>
+                  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full capitalize">{l.sub_type || l.subType || 'parking'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 text-xs font-bold text-hgreen">
                   <div className="w-2 h-2 bg-hgreen rounded-full" />
-                  {l.available_slots} slots available
+                  {l.available_slots ?? l.total_slots ?? '—'} slots available
                 </div>
               </div>
             </div>

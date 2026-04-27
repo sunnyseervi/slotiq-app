@@ -30,38 +30,51 @@ function SettingsRow({ icon, label, value, badge, danger, toggle, toggleOn, onTo
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { currentUser, currentMode, setMode, logout, darkMode, toggleDarkMode, notifications, vehicles, addVehicle, savedSpots, bookings } = useStore()
-  const [showLoc, setShowLoc] = useState(false)
-  const [showVehicles, setShowVehicles] = useState(false)
+  const {
+    currentUser, currentMode, setMode, logout, darkMode, toggleDarkMode,
+    notifications, vehicles, addVehicle, savedSpots, bookings, updateUserField
+  } = useStore()
+
+  const [showLoc,        setShowLoc]        = useState(false)
+  const [showVehicles,   setShowVehicles]   = useState(false)
   const [showAddVehicle, setShowAddVehicle] = useState(false)
-  const [showNotifs,   setShowNotifs]   = useState(false)
-  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
-  const [nextMode, setNextMode] = useState('')
-  
+  const [showNotifs,     setShowNotifs]     = useState(false)
+  const [showEditProfile, setShowEditProfile] = useState(false)
+
   const [newVehicle, setNewVehicle] = useState({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
 
-  const bkCount = bookings.length
+  // Local editable profile state
+  const [editForm, setEditForm] = useState({
+    name:    currentUser?.name    || '',
+    phone:   currentUser?.phone   || '',
+    email:   currentUser?.email   || '',
+    address: currentUser?.address || '',
+    picture: currentUser?.picture || '',
+  })
+
+  const bkCount    = bookings.length
   const savedCount = savedSpots.length
-  const isHost = currentMode === 'host'
+  const isHost     = currentMode === 'host'
+  const displayName = currentUser?.name || 'Guest'
+  const hasProfile  = !!(currentUser?.name || currentUser?.phone)
 
   function handleAddVehicle(e) {
     e.preventDefault()
-    if (!newVehicle.rc_picture) return alert('RC Picture is required')
     addVehicle(newVehicle)
     setShowAddVehicle(false)
     setNewVehicle({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
   }
 
-  function handleModeSwitch() {
-    const next = isHost ? 'customer' : 'host'
-    setNextMode(next)
-    setShowSwitchConfirm(true)
+  function handleSaveProfile(e) {
+    e.preventDefault()
+    Object.entries(editForm).forEach(([k, v]) => updateUserField(k, v))
+    setShowEditProfile(false)
   }
 
-  function confirmModeSwitch() {
-    setMode(nextMode)
-    setShowSwitchConfirm(false)
-    navigate(nextMode === 'host' ? '/host/dashboard' : '/')
+  function handleModeSwitch() {
+    const next = isHost ? 'customer' : 'host'
+    setMode(next)
+    navigate(next === 'host' ? '/host/dashboard' : '/')
   }
 
   return (
@@ -70,19 +83,32 @@ export default function ProfilePage() {
         <TopBar onLocationClick={() => setShowLoc(true)} />
 
         {/* Profile Header */}
-        <div className="bg-white dark:bg-gray-800 px-4 py-5 flex items-center gap-4 border-b border-gray-100 dark:border-gray-700">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black flex-shrink-0"
-            style={{ background: currentUser?.avatar_color || '#F5620F' }}>
-            {currentUser?.avatar_initial || 'S'}
+        <div
+          className="bg-white dark:bg-gray-800 px-4 py-5 flex items-center gap-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+          onClick={() => setShowEditProfile(true)}
+        >
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black flex-shrink-0 overflow-hidden"
+            style={{ background: currentUser?.picture ? 'transparent' : (currentUser?.avatar_color || '#F5620F') }}
+          >
+            {currentUser?.picture ? (
+              <img src={currentUser.picture} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              hasProfile ? (displayName[0]?.toUpperCase() || '👤') : '👤'
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-extrabold text-gray-900 dark:text-white text-lg">{currentUser?.name || 'Sunil Seervi'}</div>
-            <div className="text-sm text-muted">{currentUser?.phone || '+91 92575 90511'}</div>
+            <div className="font-extrabold text-gray-900 dark:text-white text-lg">{displayName}</div>
+            {currentUser?.phone
+              ? <div className="text-sm text-muted">{currentUser.phone}</div>
+              : <div className="text-sm text-primary font-bold">Tap to set up profile →</div>
+            }
             <div className="flex items-center gap-2 mt-1">
               <span className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 text-xs font-extrabold px-2.5 py-0.5 rounded-full">⭐ Member</span>
               <span className="text-xs text-muted font-semibold">{bkCount} Bookings</span>
             </div>
           </div>
+          <span className="text-gray-300 dark:text-gray-500 text-lg">›</span>
         </div>
 
         {/* Mode Switch Banner */}
@@ -102,11 +128,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Settings Sections */}
-        <div className="px-4 space-y-3 pb-24">
+        <div className="px-4 space-y-3 pb-28">
           {/* Account */}
           <div className="card overflow-hidden">
-            <SettingsRow icon="🚗" label="My Vehicles"     badge={vehicles.length} onClick={() => setShowVehicles(true)} />
-            <SettingsRow icon="❤️" label="Saved Spots"     badge={savedCount} onClick={() => navigate('/saved')} />
+            <SettingsRow icon="🚗" label="My Vehicles"  badge={vehicles.length || undefined} onClick={() => setShowVehicles(true)} />
+            <SettingsRow icon="❤️" label="Saved Spots"  badge={savedCount || undefined}      onClick={() => navigate('/saved')} />
+            <SettingsRow icon="📋" label="My Bookings"  badge={bkCount || undefined}          onClick={() => navigate('/bookings')} />
           </div>
 
           {/* Preferences */}
@@ -127,7 +154,64 @@ export default function ProfilePage() {
 
       <BottomNav />
 
-      {/* Vehicles Modal */}
+      {/* ── Edit Profile Sheet ── */}
+      {showEditProfile && (
+        <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
+          <div className="modal-sheet p-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Edit Profile</h3>
+              <button onClick={() => setShowEditProfile(false)} className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 text-sm">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              {[
+                { key: 'name',    label: 'Full Name',    placeholder: 'e.g. Sunil Seervi',         type: 'text' },
+                { key: 'phone',   label: 'Mobile Number', placeholder: 'e.g. +91 98765 43210',    type: 'tel' },
+                { key: 'email',   label: 'Email Address', placeholder: 'e.g. you@email.com',      type: 'email' },
+                { key: 'address', label: 'Home Address',  placeholder: 'e.g. 12 Main St, Koramangala', type: 'text' },
+              ].map(({ key, label, placeholder, type }) => (
+                <div key={key}>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+                  <input
+                    type={type}
+                    value={editForm[key]}
+                    onChange={e => setEditForm({ ...editForm, [key]: e.target.value })}
+                    placeholder={placeholder}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+              ))}
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Profile Picture</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files[0]
+                    if(file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        setEditForm({ ...editForm, picture: reader.result })
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                  className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-primary hover:file:bg-orange-100"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowEditProfile(false)} className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white text-sm font-bold">Cancel</button>
+                <button type="submit" className="flex-[2] py-3 rounded-xl bg-primary text-white text-sm font-extrabold">Save Profile</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Vehicles Sheet ── */}
       {showVehicles && (
         <div className="modal-overlay" onClick={() => setShowVehicles(false)}>
           <div className="modal-sheet p-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -136,64 +220,68 @@ export default function ProfilePage() {
               <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">My Vehicles</h3>
               <button onClick={() => setShowVehicles(false)} className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 text-sm">✕</button>
             </div>
-            {vehicles.map(v => (
-              <div key={v.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-600 rounded-card mb-2">
-                <span className="text-2xl">{v.type === 'car' ? '🚗' : '🛵'}</span>
-                <div className="flex-1">
-                  <div className="font-bold text-sm text-gray-900 dark:text-white">{v.nickname || 'Unknown'}</div>
-                  <div className="text-xs text-muted font-bold tracking-widest">{v.plate_number?.toUpperCase()}</div>
+
+            {vehicles.map(v => {
+              const vType = VEHICLE_TYPES.find(t => t.value === v.type)
+              return (
+                <div key={v.id} className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-600 rounded-card mb-2">
+                  <span className="text-2xl">{vType?.emoji || '🚗'}</span>
+                  <div className="flex-1">
+                    <div className="font-bold text-sm text-gray-900 dark:text-white">{v.nickname || vType?.label || 'Vehicle'}</div>
+                    <div className="text-xs text-muted font-bold tracking-widest">{v.plate_number?.toUpperCase()}</div>
+                  </div>
+                  {v.is_default && <span className="text-warning text-sm">★ Default</span>}
                 </div>
-                {v.is_default && <span className="text-warning text-sm">★ Default</span>}
-              </div>
-            ))}
-            
+              )
+            })}
+
             {!showAddVehicle ? (
-              <button 
-                onClick={() => setShowAddVehicle(true)} 
-                className="btn-primary mt-3"
-              >
-                + Add Vehicle
-              </button>
+              <button onClick={() => setShowAddVehicle(true)} className="btn-primary mt-3">+ Add Vehicle</button>
             ) : (
-              <form onSubmit={handleAddVehicle} className="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800">
-                <h4 className="text-sm font-bold mb-3 text-gray-800 dark:text-gray-200">New Vehicle</h4>
-                
-                <label className="block text-xs font-bold text-gray-500 mb-1">Vehicle Type</label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {VEHICLE_TYPES.map(v => (
-                    <button
-                      key={v.value} type="button"
-                      onClick={() => setNewVehicle({...newVehicle, type: v.value})}
-                      className={`flex-1 min-w-[30%] py-2 rounded-lg text-sm font-bold capitalize border ${newVehicle.type === v.value ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-200 dark:border-gray-600'}`}
-                    >
-                      {v.emoji} {v.label}
-                    </button>
-                  ))}
+              <form onSubmit={handleAddVehicle} className="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 space-y-3">
+                <h4 className="text-sm font-extrabold text-gray-800 dark:text-gray-200">New Vehicle</h4>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Vehicle Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {VEHICLE_TYPES.map(v => (
+                      <button key={v.value} type="button"
+                        onClick={() => setNewVehicle({...newVehicle, type: v.value})}
+                        className={`flex-1 min-w-[30%] py-2 rounded-lg text-sm font-bold border-2 transition-all ${newVehicle.type === v.value ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-200 dark:border-gray-600'}`}
+                      >
+                        {v.emoji} {v.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <label className="block text-xs font-bold text-gray-500 mb-1">Plate Number</label>
-                <input 
-                  required
-                  value={newVehicle.plate_number} onChange={e => setNewVehicle({...newVehicle, plate_number: e.target.value})}
-                  className="w-full mb-3 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:border-primary"
-                  placeholder="e.g. KA 01 AB 1234"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Plate Number *</label>
+                  <input required value={newVehicle.plate_number}
+                    onChange={e => setNewVehicle({...newVehicle, plate_number: e.target.value})}
+                    placeholder="e.g. KA 01 AB 1234"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:border-primary"
+                  />
+                </div>
 
-                <label className="block text-xs font-bold text-gray-500 mb-1">Nickname (Optional)</label>
-                <input 
-                  value={newVehicle.nickname} onChange={e => setNewVehicle({...newVehicle, nickname: e.target.value})}
-                  className="w-full mb-4 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:border-primary"
-                  placeholder="e.g. My Honda City"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Nickname (Optional)</label>
+                  <input value={newVehicle.nickname}
+                    onChange={e => setNewVehicle({...newVehicle, nickname: e.target.value})}
+                    placeholder="e.g. My Honda City"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white outline-none focus:border-primary"
+                  />
+                </div>
 
-                <label className="block text-xs font-bold text-gray-500 mb-1">RC Picture (Required)</label>
-                <input 
-                  type="file" accept="image/*" required
-                  onChange={e => setNewVehicle({...newVehicle, rc_picture: e.target.files[0]})}
-                  className="w-full mb-4 text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-primary hover:file:bg-orange-100"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">RC Picture (Required)</label>
+                  <input type="file" accept="image/*" required
+                    onChange={e => setNewVehicle({...newVehicle, rc_picture: e.target.files[0]})}
+                    className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-primary hover:file:bg-orange-100"
+                  />
+                </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => setShowAddVehicle(false)} className="flex-1 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white text-sm font-bold">Cancel</button>
                   <button type="submit" className="flex-[2] py-2 rounded-lg bg-primary text-white text-sm font-bold">Save Vehicle</button>
                 </div>
@@ -203,7 +291,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Notifications Modal */}
+      {/* ── Notifications Sheet ── */}
       {showNotifs && (
         <div className="modal-overlay" onClick={() => setShowNotifs(false)}>
           <div className="modal-sheet p-5" onClick={e => e.stopPropagation()}>
@@ -212,6 +300,7 @@ export default function ProfilePage() {
               <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Notifications</h3>
               <button onClick={() => setShowNotifs(false)} className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 text-sm flex items-center justify-center">✕</button>
             </div>
+            {notifications.length === 0 && <div className="text-center text-sm text-muted py-8">No notifications</div>}
             {notifications.map(n => (
               <div key={n.id} className={`flex gap-3 p-3 rounded-xl mb-2 ${n.is_read ? 'bg-gray-50 dark:bg-gray-700' : 'bg-orange-50 dark:bg-orange-950'}`}>
                 <span className="text-xl">
@@ -230,39 +319,6 @@ export default function ProfilePage() {
       )}
 
       {showLoc && <LocationModal onClose={() => setShowLoc(false)} />}
-
-      {/* Mode Switch Confirmation Modal */}
-      {showSwitchConfirm && (
-        <div className="modal-overlay" onClick={() => setShowSwitchConfirm(false)} style={{ zIndex: 1000 }}>
-          <div className="modal-sheet p-6" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-6" />
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                {nextMode === 'host' ? '🏢' : '🚗'}
-              </div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">Switch to {nextMode?.toUpperCase()}?</h3>
-              <p className="text-sm text-muted px-4 leading-relaxed">
-                Are you sure you want to switch to {nextMode} mode? You can switch back anytime from your profile settings.
-              </p>
-            </div>
-            
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowSwitchConfirm(false)}
-                className="flex-1 py-4 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-extrabold text-sm active:scale-95 transition-all"
-              >
-                No, Stay
-              </button>
-              <button 
-                onClick={confirmModeSwitch}
-                className="flex-[2] py-4 rounded-2xl bg-primary text-white font-extrabold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all"
-              >
-                Yes, Switch
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

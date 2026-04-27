@@ -96,12 +96,12 @@ export const useStore = create((set, get) => ({
 
   // ── HYDRATION & SYNC ──────────────────────────────────
   async initStore() {
-    // Fetch Listings (Public)
-    const { data: listings } = await supabase.from('listings').select('*')
-    if (listings) set({ listings })
-
     const user = get().currentUser
     if (!user) return
+
+    // Fetch Listings
+    const { data: listings } = await supabase.from('listings').select('*')
+    if (listings) set({ listings })
 
     // Fetch Bookings (for current user)
     const { data: bookings } = await supabase.from('bookings').select('*').eq('customer_id', user.id)
@@ -111,9 +111,34 @@ export const useStore = create((set, get) => ({
     const { data: vehicles } = await supabase.from('vehicles').select('*').eq('user_id', user.id)
     if (vehicles) set({ vehicles })
 
-    // Fetch Saved Spots
-    const { data: saved } = await supabase.from('saved_spots').select('listing_id').eq('user_id', user.id)
-    if (saved) set({ savedSpots: saved.map(s => s.listing_id) })
+    // Realtime Subscriptions for Data Sync
+    supabase.channel('db_sync')
+      .on('postgres_changes', { event: '*', table: 'listings', schema: 'public' }, (payload) => {
+        const { eventType, new: newListing, old: oldListing } = payload
+        const currentListings = get().listings
+        
+        if (eventType === 'INSERT') {
+          set({ listings: [newListing, ...currentListings] })
+        } else if (eventType === 'UPDATE') {
+          set({ listings: currentListings.map(l => l.id === newListing.id ? newListing : l) })
+        } else if (eventType === 'DELETE') {
+          set({ listings: currentListings.filter(l => l.id !== oldListing.id) })
+        }
+      })
+      .on('postgres_changes', { event: '*', table: 'bookings', schema: 'public' }, (payload) => {
+        const { eventType, new: newBooking, old: oldBooking } = payload
+        if (newBooking.customer_id !== user.id) return // Only sync current user's bookings
+        
+        const currentBookings = get().bookings
+        if (eventType === 'INSERT') {
+          set({ bookings: [newBooking, ...currentBookings] })
+        } else if (eventType === 'UPDATE') {
+          set({ bookings: currentBookings.map(b => b.id === newBooking.id ? newBooking : b) })
+        } else if (eventType === 'DELETE') {
+          set({ bookings: currentBookings.filter(b => b.id !== oldBooking.id) })
+        }
+      })
+      .subscribe()
   },
 
   async login(user) {
@@ -391,23 +416,12 @@ export const useStore = create((set, get) => ({
     get()._persist()
   },
 
-  async toggleSavedSpot(id) {
-    const user = get().currentUser
-    const isSaved = get().savedSpots.includes(id)
-
-    // Optimistic UI update
-    set(s => ({
-      savedSpots: isSaved ? s.savedSpots.filter(x => x !== id) : [...s.savedSpots, id]
-    }))
+  toggleSavedSpot(id) {
+    set(s => {
+      const isSaved = s.savedSpots.includes(id)
+      return { savedSpots: isSaved ? s.savedSpots.filter(x => x !== id) : [...s.savedSpots, id] }
+    })
     get()._persist()
-
-    if (user?.id && !user.id.startsWith('temp-')) {
-      if (isSaved) {
-        await supabase.from('saved_spots').delete().eq('user_id', user.id).eq('listing_id', id)
-      } else {
-        await supabase.from('saved_spots').insert([{ user_id: user.id, listing_id: id }])
-      }
-    }
   },
 
   async addBooking(booking) {

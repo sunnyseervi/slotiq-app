@@ -14,7 +14,7 @@ const TABS = [
 ]
 
 export default function HomePage() {
-  const { homeTab, setHomeTab, sections } = useStore()
+  const { homeTab, setHomeTab, sections, ads } = useStore()
   const [showLoc, setShowLoc] = useState(false)
 
   // Filter tabs based on admin settings
@@ -61,6 +61,25 @@ export default function HomePage() {
         {homeTab === 'parking'  && sections.parking && <ParkingTab />}
         {homeTab === 'sports'   && sections.sports && <SportsTab />}
         {homeTab === 'discover' && sections.discovery && <DiscoverTab />}
+
+        {/* Advertisement Banner (Home) */}
+        {ads?.home?.active && ads.home.url && (
+          <div className="px-4 mb-6 mt-4">
+            <a 
+              href={ads.home.link} 
+              target="_blank" 
+              rel="noreferrer"
+              className="block w-full h-32 rounded-2xl overflow-hidden shadow-sm transition-transform active:scale-95 relative border border-gray-100 dark:border-gray-800 bg-gray-100"
+            >
+              <div className="absolute top-2 right-2 bg-black/60 text-[8px] text-white/90 px-1.5 py-0.5 rounded uppercase tracking-widest z-10 backdrop-blur-sm">Ad</div>
+              {ads.home.url.match(/\.(mp4|webm|mov)$/i) ? (
+                <video src={ads.home.url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+              ) : (
+                <img src={ads.home.url} alt="Advertisement" className="w-full h-full object-cover" />
+              )}
+            </a>
+          </div>
+        )}
       </div>
 
       <BottomNav />
