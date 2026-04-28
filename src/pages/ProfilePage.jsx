@@ -5,6 +5,7 @@ import BottomNav from '../components/layout/BottomNav'
 import LocationModal from '../components/modals/LocationModal'
 import { useStore } from '../store/useStore'
 import { VEHICLE_TYPES } from '../lib/mockData'
+import { supabase } from '../lib/supabase'
 
 function SettingsRow({ icon, label, value, badge, danger, toggle, toggleOn, onToggle, onClick, chevron = true }) {
   return (
@@ -45,18 +46,18 @@ export default function ProfilePage() {
 
   // Local editable profile state
   const [editForm, setEditForm] = useState({
-    name:    currentUser?.name    || '',
+    name:    currentUser?.full_name || currentUser?.name || '',
     phone:   currentUser?.phone   || '',
     email:   currentUser?.email   || '',
     address: currentUser?.address || '',
-    picture: currentUser?.picture || '',
+    picture: currentUser?.avatar_url || currentUser?.picture || '',
   })
 
   const bkCount    = bookings.length
   const savedCount = savedSpots.length
-  const isHost     = currentMode === 'host'
-  const displayName = currentUser?.name || 'Guest'
-  const hasProfile  = !!(currentUser?.name || currentUser?.phone)
+  const isHost     = currentUser?.role === 'host'
+  const displayName = currentUser?.full_name || currentUser?.name || 'Guest'
+  const hasProfile  = !!(currentUser?.full_name || currentUser?.phone)
 
   function handleAddVehicle(e) {
     e.preventDefault()
@@ -65,16 +66,28 @@ export default function ProfilePage() {
     setNewVehicle({ type: 'car', nickname: '', plate_number: '', rc_picture: null })
   }
 
-  function handleSaveProfile(e) {
+  async function handleSaveProfile(e) {
     e.preventDefault()
-    Object.entries(editForm).forEach(([k, v]) => updateUserField(k, v))
+    const { error } = await supabase.from('users').update({
+      full_name: editForm.name,
+      email: editForm.email,
+      city: editForm.address, // mapping address to city temporarily or add address col
+      avatar_url: editForm.picture
+    }).eq('id', currentUser.id)
+    
+    if (error) alert("Error updating profile: " + error.message)
+    else await useStore.getState().checkAuth()
+    
     setShowEditProfile(false)
   }
 
-  function handleModeSwitch() {
+  async function handleModeSwitch() {
     const next = isHost ? 'customer' : 'host'
-    setMode(next)
-    navigate(next === 'host' ? '/host/dashboard' : '/')
+    const { error } = await supabase.from('users').update({ role: next }).eq('id', currentUser.id)
+    if (!error) {
+      await useStore.getState().checkAuth()
+      navigate(next === 'host' ? '/host/dashboard' : '/')
+    }
   }
 
   return (
@@ -89,10 +102,10 @@ export default function ProfilePage() {
         >
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black flex-shrink-0 overflow-hidden"
-            style={{ background: currentUser?.picture ? 'transparent' : (currentUser?.avatar_color || '#F5620F') }}
+            style={{ background: (currentUser?.avatar_url || currentUser?.picture) ? 'transparent' : (currentUser?.avatar_color || '#F5620F') }}
           >
-            {currentUser?.picture ? (
-              <img src={currentUser.picture} alt="Profile" className="w-full h-full object-cover" />
+            {(currentUser?.avatar_url || currentUser?.picture) ? (
+              <img src={currentUser.avatar_url || currentUser.picture} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               hasProfile ? (displayName[0]?.toUpperCase() || '👤') : '👤'
             )}

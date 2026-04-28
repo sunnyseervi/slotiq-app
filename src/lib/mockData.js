@@ -1,22 +1,6 @@
 // Production Seed Data — SlotIQ
 import { calculateDynamicPrice } from './pricingEngine'
 
-export const MOCK_USER = {
-  id: 'guest-' + Date.now(),
-  name: '',
-  phone: '',
-  email: '',
-  avatar_initial: 'G',
-  avatar_color: '#9CA3AF',
-  mode: 'customer',
-  role: 'guest',
-  member_tier: 'none',
-  wallet_balance: 0,
-  language: 'EN',
-  dark_mode: false,
-  location_city: 'Bengaluru',
-  location_area: 'Koramangala',
-};
 
 export const MOCK_VEHICLES = [];
 

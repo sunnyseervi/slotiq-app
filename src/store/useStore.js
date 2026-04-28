@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { MOCK_USER, MOCK_NOTIFICATIONS, MOCK_VEHICLES, MOCK_BOOKINGS, MOCK_LISTINGS } from '../lib/mockData'
+import { MOCK_NOTIFICATIONS, MOCK_VEHICLES, MOCK_BOOKINGS, MOCK_LISTINGS } from '../lib/mockData'
 import { supabase } from '../lib/supabase'
 
 const stored = (() => {
@@ -8,8 +8,8 @@ const stored = (() => {
 
 export const useStore = create((set, get) => ({
   // Auth
-  isLoggedIn:    stored.isLoggedIn !== undefined ? stored.isLoggedIn : true,
-  currentUser:   stored.currentUser || MOCK_USER,
+  isLoggedIn:    stored.isLoggedIn || false,
+  currentUser:   stored.currentUser || null,
   isAdminAuthenticated: stored.isAdminAuthenticated || false,
 
   // Mode: 'customer' | 'host'
@@ -39,9 +39,7 @@ export const useStore = create((set, get) => ({
   homeTab: 'parking',
 
   // ── BUSINESS DATA ────────────────────────────────────
-  users:      stored.users || [
-    { ...MOCK_USER, status: 'active' }
-  ],
+  users:      stored.users || [],
   vehicles:   stored.vehicles || [],
   listings:   stored.listings || [],
   bookings:   stored.bookings || [],
@@ -141,9 +139,50 @@ export const useStore = create((set, get) => ({
       .subscribe()
   },
 
-  async login(user) {
-    const u = user || MOCK_USER
-    set({ isLoggedIn: true, currentUser: u, currentMode: u.mode || 'customer' })
+  async checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      set({ isLoggedIn: false, currentUser: null })
+      get()._persist()
+      return null
+    }
+
+    // Fetch user profile from public.users
+    const { data: userProfile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+
+    if (error || !userProfile) {
+      // Create empty profile if not exists
+      const newProfile = {
+        id: session.user.id,
+        phone: session.user.phone,
+        profile_completed: false
+      }
+      await supabase.from('users').insert([newProfile])
+      set({ isLoggedIn: true, currentUser: newProfile })
+      get()._persist()
+      return newProfile
+    }
+
+    set({ 
+      isLoggedIn: true, 
+      currentUser: userProfile,
+      currentMode: userProfile.role === 'host' ? 'host' : 'customer'
+    })
+    get()._persist()
+    await get().initStore()
+    return userProfile
+  },
+
+  async login(userProfile) {
+    set({ 
+      isLoggedIn: true, 
+      currentUser: userProfile, 
+      currentMode: userProfile.role === 'host' ? 'host' : 'customer' 
+    })
     get()._persist()
     await get().initStore()
   },

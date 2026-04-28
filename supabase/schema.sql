@@ -12,6 +12,8 @@ create table public.users (
   city text,
   area text,
   avatar_url text,
+  role text,
+  profile_completed boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

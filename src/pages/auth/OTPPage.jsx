@@ -50,17 +50,15 @@ export default function OTPPage() {
       setErr(error.message)
       setLoading(false)
     } else {
-      // Map Supabase user to our local store
-      const u = data.user
-      login({
-        id: u.id,
-        name: u.user_metadata?.full_name || 'New User',
-        phone: u.phone,
-        email: u.email,
-        mode: 'customer',
-        role: 'customer'
-      })
-      navigate('/', { replace: true })
+      const userProfile = await useStore.getState().checkAuth()
+      
+      if (!userProfile?.profile_completed) {
+        navigate('/auth/onboarding', { replace: true })
+      } else if (userProfile.role === 'host') {
+        navigate('/host/dashboard', { replace: true })
+      } else {
+        navigate('/', { replace: true })
+      }
     }
   }
 

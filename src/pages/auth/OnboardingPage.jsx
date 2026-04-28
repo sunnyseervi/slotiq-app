@@ -1,103 +1,154 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { LOCATIONS, VEHICLE_TYPES } from '../../lib/mockData'
+import { supabase } from '../../lib/supabase'
 
 export default function OnboardingPage() {
-  const [step,    setStep]    = useState(1)
-  const [name,    setName]    = useState('')
-  const [plate,   setPlate]   = useState('')
-  const [vType,   setVType]   = useState('car')
-  const [nick,    setNick]    = useState('')
-  const [city,    setCity]    = useState('Bengaluru')
-  const [area,    setArea]    = useState('Koramangala')
-  const { updateUserField, setLocation } = useStore()
+  const [step, setStep] = useState(0) // 0: CTA, 1: Form
+  const [name, setName] = useState('')
+  const [role, setRole] = useState('')
+  const [avatar, setAvatar] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  
+  const { currentUser, setMode } = useStore()
 
-  function finish() {
-    if (name) updateUserField('name', name)
-    setLocation(city, area)
-    navigate('/', { replace: true })
+  async function handleComplete() {
+    if (!name || !role) return
+    setLoading(true)
+    
+    // Save to Supabase
+    const { error } = await supabase
+      .from('users')
+      .update({
+        full_name: name,
+        role: role,
+        avatar_url: avatar,
+        profile_completed: true
+      })
+      .eq('id', currentUser.id)
+
+    setLoading(false)
+    if (error) {
+      alert("Error saving profile: " + error.message)
+      return
+    }
+
+    // Refresh auth state in store
+    const updatedUser = await useStore.getState().checkAuth()
+    
+    if (updatedUser?.role === 'host') {
+      navigate('/host/dashboard', { replace: true })
+    } else {
+      navigate('/', { replace: true })
+    }
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setAvatar(reader.result)
+      reader.readAsDataURL(file)
+    }
   }
 
   return (
     <div className="app-shell">
-      <div className="screen-content bg-white dark:bg-gray-900 px-6 py-8">
-        {/* Progress */}
-        <div className="flex gap-2 mb-8">
-          {[1,2,3].map(s => (
-            <div key={s} className={`step-dot${step === s ? ' active' : step > s ? ' done' : ''}`} />
-          ))}
-        </div>
+      <div className="screen-content bg-white dark:bg-gray-900 px-6 py-8 flex flex-col items-center justify-center min-h-screen">
+        
+        {step === 0 && (
+          <div className="animate-fadeIn text-center max-w-sm w-full">
+            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+              ✨
+            </div>
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Welcome to SlotIQ!</h1>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
+              Let's get your profile set up so you can start parking or hosting right away.
+            </p>
+            <button 
+              onClick={() => setStep(1)} 
+              className="btn-primary w-full shadow-xl shadow-primary/20"
+            >
+              Setup Profile
+            </button>
+          </div>
+        )}
 
         {step === 1 && (
-          <div className="animate-fadeIn">
-            <div className="text-4xl mb-4">👤</div>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">What's your name?</h1>
-            <p className="text-sm text-muted mb-6">We'll personalize your experience</p>
-            <input
-              value={name} onChange={e => setName(e.target.value)}
-              placeholder="Your full name"
-              className="w-full border-2 border-gray-200 dark:border-gray-600 rounded-card px-4 py-3 text-sm font-semibold outline-none focus:border-primary transition-colors mb-6 dark:bg-gray-800 dark:text-white"
-            />
-            <button onClick={() => setStep(2)} disabled={!name.trim()} className="btn-primary">Continue →</button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="animate-fadeIn">
-            <div className="text-4xl mb-4">🚗</div>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">Add your vehicle</h1>
-            <p className="text-sm text-muted mb-6">For faster booking and Scan & Park</p>
-
-            <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1">
-              {VEHICLE_TYPES.slice(0,3).map(vt => (
-                <button key={vt.value} onClick={() => setVType(vt.value)}
-                  className={`flex-shrink-0 flex flex-col items-center gap-1 p-3 border-2 rounded-card text-xs font-bold transition-all min-w-[64px] ${vType === vt.value ? 'border-primary bg-orange-50 dark:bg-orange-950 text-primary' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'}`}>
-                  <span className="text-2xl">{vt.emoji}</span>{vt.label.split(' ')[0]}
-                </button>
-              ))}
+          <div className="animate-fadeIn w-full max-w-sm flex flex-col h-full justify-center">
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2 text-center">Complete Profile</h1>
+            <p className="text-sm text-muted mb-8 text-center">We need a few details to identify you</p>
+            
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 border-4 border-white dark:border-gray-900 shadow-xl overflow-hidden flex items-center justify-center">
+                  {avatar ? (
+                    <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-4xl">👤</span>
+                  )}
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  id="avatarUpload" 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                />
+                <label 
+                  htmlFor="avatarUpload" 
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform"
+                >
+                  📷
+                </label>
+              </div>
             </div>
 
-            <input value={plate} onChange={e => setPlate(e.target.value.toUpperCase())}
-              placeholder="KA 05 MN 7890"
-              className="w-full border-2 border-gray-200 dark:border-gray-600 rounded-card px-4 py-3 text-sm font-bold uppercase tracking-widest outline-none focus:border-primary mb-3 dark:bg-gray-800 dark:text-white transition-colors"
-            />
-            <input value={nick} onChange={e => setNick(e.target.value)}
-              placeholder="Nickname (e.g. My Swift)"
-              className="w-full border-2 border-gray-200 dark:border-gray-600 rounded-card px-4 py-3 text-sm font-semibold outline-none focus:border-primary mb-6 dark:bg-gray-800 dark:text-white transition-colors"
-            />
-            <button onClick={() => setStep(3)} className="btn-primary mb-3">Continue →</button>
-            <button onClick={() => setStep(3)} className="text-sm text-muted text-center w-full">Skip for now</button>
-          </div>
-        )}
+            {/* Form */}
+            <div className="space-y-5 flex-1">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Full Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                  className="w-full border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] dark:text-white rounded-xl px-4 py-3 font-semibold outline-none focus:border-primary transition-colors"
+                />
+              </div>
 
-        {step === 3 && (
-          <div className="animate-fadeIn">
-            <div className="text-4xl mb-4">📍</div>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">Choose your area</h1>
-            <p className="text-sm text-muted mb-4">We'll show listings near you</p>
-
-            <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
-              {LOCATIONS.cities.map(c => (
-                <button key={c} onClick={() => setCity(c)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-pill text-sm font-bold border-2 transition-all ${city === c ? 'bg-primary border-primary text-white' : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'}`}>
-                  {c}
-                </button>
-              ))}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">I want to...</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setRole('customer')}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${role === 'customer' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111]'}`}
+                  >
+                    <div className="text-2xl mb-1">🚗</div>
+                    <div className={`font-bold text-sm ${role === 'customer' ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>Find Parking</div>
+                  </button>
+                  <button 
+                    onClick={() => setRole('host')}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${role === 'host' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111]'}`}
+                  >
+                    <div className="text-2xl mb-1">🏠</div>
+                    <div className={`font-bold text-sm ${role === 'host' ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>Host a Space</div>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              {(LOCATIONS.areas[city]||[]).map(a => (
-                <button key={a} onClick={() => setArea(a)}
-                  className={`flex items-center gap-1 p-3 border-2 rounded-card text-sm font-bold text-left transition-all ${area === a ? 'border-primary bg-orange-50 dark:bg-orange-950 text-primary' : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'}`}>
-                  <span className="text-primary text-xs">📍</span>{a}
-                </button>
-              ))}
+            <div className="mt-8">
+              <button 
+                onClick={handleComplete} 
+                disabled={!name.trim() || !role || loading} 
+                className="btn-primary w-full"
+              >
+                {loading ? 'Saving...' : 'Finish Setup'}
+              </button>
             </div>
-
-            <button onClick={finish} className="btn-primary mb-3">Get Started! 🎉</button>
-            <button onClick={finish} className="text-sm text-muted text-center w-full">Skip for now</button>
           </div>
         )}
       </div>
