@@ -52,9 +52,7 @@ export default function OTPPage() {
     } else {
       const userProfile = await useStore.getState().checkAuth()
       
-      if (!userProfile?.profile_completed) {
-        navigate('/auth/onboarding', { replace: true })
-      } else if (userProfile.role === 'host') {
+      if (userProfile?.role === 'host') {
         navigate('/host/dashboard', { replace: true })
       } else {
         navigate('/', { replace: true })

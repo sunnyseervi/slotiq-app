@@ -38,12 +38,8 @@ import AdminUserManagement      from './pages/admin/AdminUserManagement'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 
 function RequireAuth({ children }) {
-  const { isLoggedIn, currentUser } = useStore(s => ({ 
-    isLoggedIn: s.isLoggedIn, 
-    currentUser: s.currentUser 
-  }))
+  const { isLoggedIn } = useStore(s => ({ isLoggedIn: s.isLoggedIn }))
   if (!isLoggedIn) return <Navigate to="/auth/login" replace />
-  if (currentUser && !currentUser.profile_completed) return <Navigate to="/auth/onboarding" replace />
   return children
 }
 
