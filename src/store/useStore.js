@@ -176,10 +176,14 @@ export const useStore = create((set, get) => ({
       // Create empty profile if not exists
       const newProfile = {
         id: session.user.id,
+        email: session.user.email,
         phone: session.user.phone,
         profile_completed: false
       }
-      await supabase.from('users').insert([newProfile])
+      const { error: insertError } = await supabase.from('users').insert([newProfile])
+      if (insertError) {
+        console.error("Failed to insert new profile:", insertError)
+      }
       set({ isLoggedIn: true, currentUser: newProfile })
       get()._persist()
       return newProfile

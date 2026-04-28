@@ -15,41 +15,53 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
 
   async function handleComplete() {
-    if (!name || !role || !phone) return
-    const cleanPhone = phone.replace(/\D/g, '')
-    if (cleanPhone.length !== 10) {
-      alert("Enter a valid 10-digit number. Only numbers allowed.")
-      return
-    }
+    try {
+      if (!name || !role || !phone) return
+      const cleanPhone = phone.replace(/\D/g, '')
+      if (cleanPhone.length !== 10) {
+        alert("Enter a valid 10-digit number. Only numbers allowed.")
+        return
+      }
 
-    setLoading(true)
-    
-    // Save to Supabase
-    const { error } = await supabase
-      .from('users')
-      .update({
-        full_name: name,
-        phone: `+91${cleanPhone}`,
-        role: role,
-        avatar_url: avatar,
-        profile_completed: true
-      })
-      .eq('id', currentUser.id)
+      if (!currentUser || !currentUser.id) {
+        alert("Session error: Missing user ID. Please log in again.")
+        navigate('/auth/login')
+        return
+      }
 
-    setLoading(false)
-    if (error) {
-      if (error.code === '23505') alert("This phone number is already registered to another user.")
-      else alert("Error saving profile: " + error.message)
-      return
-    }
+      setLoading(true)
+      
+      // Save to Supabase
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: name,
+          phone: `+91${cleanPhone}`,
+          role: role,
+          avatar_url: avatar,
+          profile_completed: true
+        })
+        .eq('id', currentUser.id)
 
-    // Refresh auth state in store
-    const updatedUser = await useStore.getState().checkAuth()
-    
-    if (updatedUser?.role === 'host') {
-      window.location.href = '/host/dashboard'
-    } else {
-      window.location.href = '/'
+      if (error) {
+        setLoading(false)
+        if (error.code === '23505') alert("This phone number is already registered to another user.")
+        else alert("Database Error saving profile: " + error.message)
+        return
+      }
+
+      // Refresh auth state in store
+      const updatedUser = await useStore.getState().checkAuth()
+      
+      setLoading(false)
+      if (updatedUser?.role === 'host') {
+        window.location.href = '/host/dashboard'
+      } else {
+        window.location.href = '/'
+      }
+    } catch (err) {
+      setLoading(false)
+      alert("App Crash Error: " + err.message)
     }
   }
 
@@ -57,7 +69,35 @@ export default function OnboardingPage() {
     const file = e.target.files[0]
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => setAvatar(reader.result)
+      reader.onloadend = () => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const MAX_SIZE = 300
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width
+              width = MAX_SIZE
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height
+              height = MAX_SIZE
+            }
+          }
+
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+          setAvatar(compressedBase64)
+        }
+        img.src = reader.result
+      }
       reader.readAsDataURL(file)
     }
   }
