@@ -14,17 +14,32 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    
-    // SUPABASE SMS AUTH
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+91${phone}`
+    const email = `${phone}@slotiq.app`
+    const password = `SlotIQ_Pass_${phone}!`
+
+    // Try to login directly
+    let { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
     })
+
+    // If it fails, they are a new user, sign them up!
+    if (error) {
+      const res = await supabase.auth.signUp({
+        email,
+        password,
+        phone: `+91${phone}`
+      })
+      error = res.error
+    }
 
     setLoading(false)
     if (error) {
-      alert("Real OTP Error: " + error.message + "\n\nNote: You must configure MSG91 in Supabase -> Auth -> Providers -> Phone to use SMS OTP.")
+      alert("Error logging in: " + error.message)
     } else {
-      navigate('/auth/otp', { state: { phone } })
+      // Force store to pull the new session instantly
+      await useStore.getState().checkAuth()
+      navigate('/', { replace: true })
     }
   }
 
@@ -77,7 +92,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <span className="text-xl">📱</span>
-                  Get OTP via SMS
+                  Login Securely
                 </>
               )}
             </button>
