@@ -47,9 +47,9 @@ export default function OnboardingPage() {
     const updatedUser = await useStore.getState().checkAuth()
     
     if (updatedUser?.role === 'host') {
-      navigate('/host/dashboard', { replace: true })
+      window.location.href = '/host/dashboard'
     } else {
-      navigate('/', { replace: true })
+      window.location.href = '/'
     }
   }
 

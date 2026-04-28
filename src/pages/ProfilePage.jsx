@@ -49,7 +49,7 @@ export default function ProfilePage() {
     name:    currentUser?.full_name || currentUser?.name || '',
     phone:   (currentUser?.phone || '').replace('+91', ''),
     email:   currentUser?.email   || '',
-    address: currentUser?.address || '',
+    address: currentUser?.city || '',
     picture: currentUser?.avatar_url || currentUser?.picture || '',
   })
 
