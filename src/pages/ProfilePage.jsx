@@ -69,37 +69,55 @@ export default function ProfilePage() {
   async function handleSaveProfile(e) {
     e.preventDefault()
 
-    // Strict Phone Validation
-    const cleanPhone = editForm.phone.replace(/\D/g, '')
-    if (cleanPhone.length !== 10) {
-      alert("Enter a valid 10-digit number. Only numbers allowed.")
+    if (!currentUser?.id) {
+      alert('Session error. Please refresh the app.')
       return
     }
 
-    const { error } = await supabase.from('users').update({
-      full_name: editForm.name,
-      phone: `+91${cleanPhone}`,
-      email: editForm.email,
-      city: editForm.address, // mapping address to city temporarily or add address col
-      avatar_url: editForm.picture
-    }).eq('id', currentUser.id)
-    
-    if (error) {
-      if (error.code === '23505') alert("This phone number is already registered to another user.")
-      else alert("Error updating profile: " + error.message)
+    const cleanPhone = editForm.phone.replace(/\D/g, '')
+    if (cleanPhone && cleanPhone.length !== 10) {
+      alert('Enter a valid 10-digit number. Only numbers allowed.')
       return
     }
-    
+
+    const updates = {
+      full_name: editForm.name || null,
+      email: editForm.email || null,
+      city: editForm.address || null,
+      avatar_url: editForm.picture || null,
+      profile_completed: true
+    }
+    if (cleanPhone.length === 10) updates.phone = `+91${cleanPhone}`
+
+    const { error } = await supabase.from('users').update(updates).eq('id', currentUser.id)
+
+    if (error) {
+      if (error.code === '23505') alert('This phone number is already registered to another user.')
+      else alert('Error saving profile: ' + error.message)
+      return
+    }
+
     await useStore.getState().checkAuth()
     setShowEditProfile(false)
   }
 
   async function handleModeSwitch() {
+    if (!currentUser?.id) return
     const next = isHost ? 'customer' : 'host'
     const { error } = await supabase.from('users').update({ role: next }).eq('id', currentUser.id)
-    if (!error) {
-      await useStore.getState().checkAuth()
-      navigate(next === 'host' ? '/host/dashboard' : '/')
+    if (error) {
+      alert('Error switching mode: ' + error.message)
+      return
+    }
+    // Update store immediately then navigate
+    useStore.setState({ currentMode: next })
+    await useStore.getState().checkAuth()
+    if (next === 'host') {
+      window.location.href = window.location.origin + '/slotiq-app/#/host/dashboard'
+      navigate('/host/dashboard')
+    } else {
+      window.location.href = window.location.origin + '/slotiq-app/'
+      navigate('/')
     }
   }
 
