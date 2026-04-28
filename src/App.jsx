@@ -64,7 +64,7 @@ export default function App() {
   const login = useStore(s => s.login)
 
   React.useEffect(() => {
-    useStore.getState().initStore()
+    useStore.getState().checkAuth()
   }, [])
 
   return (

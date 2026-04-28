@@ -4,17 +4,24 @@ import { useStore } from '../../store/useStore'
 import { supabase } from '../../lib/supabase'
 
 export default function OnboardingPage() {
+  const { currentUser, setMode } = useStore()
+  
   const [step, setStep] = useState(0) // 0: CTA, 1: Form
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState(currentUser?.phone?.replace('+91', '') || '')
   const [role, setRole] = useState('')
   const [avatar, setAvatar] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  
-  const { currentUser, setMode } = useStore()
 
   async function handleComplete() {
-    if (!name || !role) return
+    if (!name || !role || !phone) return
+    const cleanPhone = phone.replace(/\D/g, '')
+    if (cleanPhone.length !== 10) {
+      alert("Enter a valid 10-digit number. Only numbers allowed.")
+      return
+    }
+
     setLoading(true)
     
     // Save to Supabase
@@ -22,6 +29,7 @@ export default function OnboardingPage() {
       .from('users')
       .update({
         full_name: name,
+        phone: `+91${cleanPhone}`,
         role: role,
         avatar_url: avatar,
         profile_completed: true
@@ -30,7 +38,8 @@ export default function OnboardingPage() {
 
     setLoading(false)
     if (error) {
-      alert("Error saving profile: " + error.message)
+      if (error.code === '23505') alert("This phone number is already registered to another user.")
+      else alert("Error saving profile: " + error.message)
       return
     }
 
@@ -109,7 +118,7 @@ export default function OnboardingPage() {
             {/* Form */}
             <div className="space-y-5 flex-1">
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Full Name</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Full Name *</label>
                 <input
                   type="text"
                   value={name}
@@ -117,6 +126,21 @@ export default function OnboardingPage() {
                   placeholder="e.g. John Doe"
                   className="w-full border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] dark:text-white rounded-xl px-4 py-3 font-semibold outline-none focus:border-primary transition-colors"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Mobile Number *</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">+91</span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="98765 43210"
+                    className="w-full pl-14 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] dark:text-white rounded-xl font-semibold outline-none focus:border-primary transition-colors"
+                  />
+                </div>
               </div>
 
               <div>
@@ -143,7 +167,7 @@ export default function OnboardingPage() {
             <div className="mt-8">
               <button 
                 onClick={handleComplete} 
-                disabled={!name.trim() || !role || loading} 
+                disabled={!name.trim() || !role || phone.length < 10 || loading} 
                 className="btn-primary w-full"
               >
                 {loading ? 'Saving...' : 'Finish Setup'}
