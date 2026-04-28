@@ -158,11 +158,26 @@ export const useStore = create((set, get) => ({
   },
 
   async checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
+
     if (!session) {
-      set({ isLoggedIn: false, currentUser: null })
-      get()._persist()
-      return null
+      const deviceId = localStorage.getItem('slotiq_device_id') || Math.floor(Math.random() * 10000000000).toString().padStart(10, '0')
+      localStorage.setItem('slotiq_device_id', deviceId)
+      
+      const email = `user_${deviceId}@slotiq.app`
+      const password = `SlotIQ_Pass_${deviceId}!`
+      
+      let res = await supabase.auth.signInWithPassword({ email, password })
+      if (res.error) {
+        res = await supabase.auth.signUp({ email, password, phone: `+91${deviceId}` })
+      }
+      session = res.data?.session
+      
+      if (!session) {
+        set({ isLoggedIn: false, currentUser: null })
+        get()._persist()
+        return null
+      }
     }
 
     // Fetch user profile from public.users
