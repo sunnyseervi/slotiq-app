@@ -136,6 +136,24 @@ export const useStore = create((set, get) => ({
           set({ bookings: currentBookings.filter(b => b.id !== oldBooking.id) })
         }
       })
+      .on('postgres_changes', { event: '*', table: 'users', schema: 'public', filter: `id=eq.${user.id}` }, (payload) => {
+        const { eventType, new: newUser } = payload
+        if (eventType === 'UPDATE') {
+          if (newUser.status === 'blocked') {
+            get().logout()
+            window.location.href = '/auth/login'
+          } else {
+            set({ 
+              currentUser: newUser, 
+              currentMode: newUser.role === 'host' ? 'host' : 'customer' 
+            })
+            get()._persist()
+          }
+        } else if (eventType === 'DELETE') {
+          get().logout()
+          window.location.href = '/auth/login'
+        }
+      })
       .subscribe()
   },
 

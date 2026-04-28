@@ -10,10 +10,10 @@ create table public.users (
   phone text unique,
   full_name text,
   city text,
-  area text,
   avatar_url text,
   role text,
   profile_completed boolean default false,
+  status text default 'active',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

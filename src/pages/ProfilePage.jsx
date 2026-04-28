@@ -47,7 +47,7 @@ export default function ProfilePage() {
   // Local editable profile state
   const [editForm, setEditForm] = useState({
     name:    currentUser?.full_name || currentUser?.name || '',
-    phone:   currentUser?.phone   || '',
+    phone:   (currentUser?.phone || '').replace('+91', ''),
     email:   currentUser?.email   || '',
     address: currentUser?.address || '',
     picture: currentUser?.avatar_url || currentUser?.picture || '',
@@ -68,16 +68,29 @@ export default function ProfilePage() {
 
   async function handleSaveProfile(e) {
     e.preventDefault()
+
+    // Strict Phone Validation
+    const cleanPhone = editForm.phone.replace(/\D/g, '')
+    if (cleanPhone.length !== 10) {
+      alert("Enter a valid 10-digit number. Only numbers allowed.")
+      return
+    }
+
     const { error } = await supabase.from('users').update({
       full_name: editForm.name,
+      phone: `+91${cleanPhone}`,
       email: editForm.email,
       city: editForm.address, // mapping address to city temporarily or add address col
       avatar_url: editForm.picture
     }).eq('id', currentUser.id)
     
-    if (error) alert("Error updating profile: " + error.message)
-    else await useStore.getState().checkAuth()
+    if (error) {
+      if (error.code === '23505') alert("This phone number is already registered to another user.")
+      else alert("Error updating profile: " + error.message)
+      return
+    }
     
+    await useStore.getState().checkAuth()
     setShowEditProfile(false)
   }
 
@@ -188,8 +201,13 @@ export default function ProfilePage() {
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
                   <input
                     type={type}
+                    maxLength={key === 'phone' ? 10 : undefined}
                     value={editForm[key]}
-                    onChange={e => setEditForm({ ...editForm, [key]: e.target.value })}
+                    onChange={e => {
+                      let val = e.target.value
+                      if (key === 'phone') val = val.replace(/\D/g, '')
+                      setEditForm({ ...editForm, [key]: val })
+                    }}
                     placeholder={placeholder}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-primary transition-colors"
                   />
