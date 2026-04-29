@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { MOCK_DISCOVER } from '../../lib/mockData'
 
 const CATEGORIES = [
   { id: 'restaurant', label: 'Restaurants', count: 20, emoji: '🍽️', badge: 'Open',      badgeCls: 'bg-green-100 text-green-700' },
@@ -23,9 +22,8 @@ export default function DiscoverTab() {
   const [query,  setQuery]  = useState('')
   const [filter, setFilter] = useState('all')
 
-  // Merge store discover listings with mock data
   const places = useMemo(() => {
-    const storeDiscover = storeListings
+    let all = storeListings
       .filter(l => l.type === 'discover' && (l.is_live || l.status === 'active'))
       .map(l => ({
         id: l.id,
@@ -39,7 +37,6 @@ export default function DiscoverTab() {
         bg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
       }))
 
-    let all = [...MOCK_DISCOVER, ...storeDiscover]
     if (filter !== 'all') all = all.filter(p => p.category === filter)
     if (query) {
       const q = query.toLowerCase()
@@ -47,17 +44,6 @@ export default function DiscoverTab() {
     }
     return all
   }, [storeListings, filter, query])
-
-  // Compute live counts from store
-  const liveCounts = useMemo(() => {
-    const disc = storeListings.filter(l => l.type === 'discover' && (l.is_live || l.status === 'active'))
-    return {
-      restaurant: disc.filter(l => l.category === 'restaurant').length,
-      cafe: disc.filter(l => l.category === 'cafe').length,
-      bar: disc.filter(l => l.category === 'bar').length,
-      mall: disc.filter(l => l.category === 'mall').length,
-    }
-  }, [storeListings])
 
   return (
     <div className="pb-6">
@@ -73,7 +59,7 @@ export default function DiscoverTab() {
           {query && <button onClick={() => setQuery('')} className="text-gray-400 text-xs">✕</button>}
         </div>
         <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">Bengaluru Discovery</h2>
-        <p className="text-xs text-muted">139+ verified places · Reviews · Navigation</p>
+        <p className="text-xs text-muted">verified places · Reviews · Navigation</p>
       </div>
 
       {/* Hero Banner */}
@@ -96,7 +82,6 @@ export default function DiscoverTab() {
             <span className="text-3xl">{c.emoji}</span>
             <div>
               <div className="text-sm font-extrabold text-gray-900 dark:text-white">{c.label}</div>
-              <div className="text-xs text-muted">{c.count} places</div>
               <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 ${c.badgeCls}`}>
                 {c.badge}
               </span>
@@ -115,18 +100,7 @@ export default function DiscoverTab() {
           >
             <div className="text-2xl">{u.emoji}</div>
             <div className="text-[10px] font-extrabold text-gray-700 dark:text-gray-200 mt-1">{u.label}</div>
-            <div className="text-[10px] text-muted">{u.count}</div>
           </button>
-        ))}
-      </div>
-
-      {/* Stats */}
-      <div className="mx-4 mt-3 bg-navy rounded-card flex justify-around p-4">
-        {[['139+','Places'],['⭐ 4.4','Avg Rating'],['24/7','Always On']].map(([v,l]) => (
-          <div key={l} className="text-center">
-            <div className="text-white font-extrabold text-base">{v}</div>
-            <div className="text-white/50 text-[10px] font-semibold">{l}</div>
-          </div>
         ))}
       </div>
 
@@ -141,9 +115,10 @@ export default function DiscoverTab() {
       </div>
 
       <div className="flex flex-col gap-3 px-4 pb-4">
-        {places.map(p => (
+        {places.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 font-semibold">No results found</div>
+        ) : places.map(p => (
           <div key={p.id} className="card overflow-hidden cursor-pointer active:scale-[0.98] transition-transform">
-            {/* Photo area */}
             <div className="h-40 flex items-center justify-center relative" style={{ background: p.bg }}>
               <span className="text-6xl">{p.emoji}</span>
               <div className="absolute top-3 left-3 bg-primary text-white text-[11px] font-extrabold px-3 py-1 rounded-full capitalize">
@@ -157,7 +132,6 @@ export default function DiscoverTab() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                     ⭐ {p.rating}
-                    <span className="text-gray-400 ml-1">({(p.review_count/1000).toFixed(1)}K reviews)</span>
                   </span>
                   {p.is_open
                     ? <span className="text-[10px] font-extrabold text-hgreen bg-green-50 dark:bg-green-950 px-2 py-0.5 rounded-full">Open</span>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import TopBar from '../../components/layout/TopBar'
 import BottomNav from '../../components/layout/BottomNav'
 import LocationModal from '../../components/modals/LocationModal'
-import { LOCATIONS } from '../../lib/mockData'
+import { LOCATIONS } from '../../lib/constants'
 import { useStore } from '../../store/useStore'
 
 const PARKING_SUBTYPES = ['Basement','Open','Covered','Mall']

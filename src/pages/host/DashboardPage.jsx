@@ -4,7 +4,7 @@ import TopBar from '../../components/layout/TopBar'
 import BottomNav from '../../components/layout/BottomNav'
 import LocationModal from '../../components/modals/LocationModal'
 import { useStore } from '../../store/useStore'
-import { formatInr } from '../../lib/mockData'
+import { formatInr } from '../../lib/utils'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -57,11 +57,7 @@ export default function DashboardPage() {
 
         {/* Action buttons */}
         <div className="px-4 mt-3 flex gap-3">
-          <button
-            onClick={() => navigate('/host/scan')}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl text-sm transition-colors">
-            🎫 Scan Customer QR
-          </button>
+
           <button
             onClick={() => navigate('/host/listing/new')}
             className="flex-1 btn-primary text-sm">
@@ -132,10 +128,7 @@ export default function DashboardPage() {
                       <span className="text-muted">Booking ID</span>
                       <span className="font-bold text-gray-700 dark:text-gray-200 font-mono">{s.id}</span>
                     </div>
-                    <button onClick={() => navigate('/host/scan')}
-                      className="mt-2 w-full py-2 text-xs font-extrabold bg-blue-600 text-white rounded-lg">
-                      🎫 Scan This Customer's QR
-                    </button>
+
                   </div>
                 )}
               </div>

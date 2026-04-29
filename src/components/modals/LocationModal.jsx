@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore } from '../../store/useStore'
-import { LOCATIONS } from '../../lib/mockData'
+import { LOCATIONS } from '../../lib/constants'
 
 export default function LocationModal({ onClose }) {
   const { selectedCity, selectedArea, setLocation, activeLocations } = useStore()

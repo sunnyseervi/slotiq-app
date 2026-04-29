@@ -7,7 +7,7 @@ import {
   Save
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { LOCATIONS } from '../../lib/mockData'
+import { LOCATIONS } from '../../lib/constants'
 
 export default function AdminGlobalSettings() {
   const { sections, toggleSection, activeLocations, toggleCity, toggleArea, ads, updateAd, systemConfig, updateSystemConfig } = useStore()

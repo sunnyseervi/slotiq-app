@@ -20,7 +20,7 @@ import {
   Bike
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { LOCATIONS } from '../../lib/mockData'
+import { LOCATIONS } from '../../lib/constants'
 
 const AMENITY_LIST = ['CCTV 24/7','EV Charging','Wheelchair Access','Security Guard','Covered Parking','Valet Available','Washrooms','WiFi','Floodlights','Changing Rooms','Parking']
 const PARKING_SUBTYPES = ['Basement','Open','Covered','Mall']

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { MOCK_SPORTS_PRICING } from '../../lib/mockData'
+
 
 const SPORT_FILTERS = [
   { id: 'all',        label: 'All',        emoji: '⚡' },
@@ -33,11 +33,10 @@ export default function SportsTab() {
       all = all.filter(l => l.name.toLowerCase().includes(q) || l.area.toLowerCase().includes(q))
     }
     return all
-  }, [sport, query])
+  }, [sport, query, storeListings])
 
   function getPrice(l) {
-    const sp = MOCK_SPORTS_PRICING.find(p => p.listing_id === l.id)
-    return sp ? sp.base_price_per_hour : (l.base_rate_per_hour || 500)
+    return l.pricing?.base_rate_per_hour || l.base_rate_per_hour || 500
   }
 
   return (
@@ -103,58 +102,50 @@ export default function SportsTab() {
           <div className="text-center py-10 text-gray-400 font-semibold">
             {query ? `No results for "${query}"` : 'No venues available'}
           </div>
-        ) : listings.map(l => {
-          const pr = MOCK_SPORTS_PRICING.find(p => p.listing_id === l.id)
-          return (
-            <div
-              key={l.id}
-              className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate(`/listing/${l.id}`)}
-            >
-              <div className="flex gap-3 mb-3">
-                <div className="w-14 h-14 bg-pink-50 dark:bg-pink-950 rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
-                  {l.thumbnail_emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-extrabold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">{l.name}</div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <span>⭐ {l.rating || '4.8'}</span>
-                    <span>·</span>
-                    <span>{l.distance_km != null ? l.distance_km : '—'}km</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1 text-xs font-bold text-hgreen">
-                    <div className="w-2 h-2 bg-hgreen rounded-full" />
-                    {(l.available_slots ?? l.total_slots ?? '—')} slots {day}
-                  </div>
-                  {l.special_note && (
-                    <div className="mt-1 text-[11px] font-extrabold text-primary flex items-center gap-1">
-                      ⚡ {l.special_note}
-                    </div>
-                  )}
-                </div>
+        ) : listings.map(l => (
+          <div
+            key={l.id}
+            className="card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+            onClick={() => navigate(`/listing/${l.id}`)}
+          >
+            <div className="flex gap-3 mb-3">
+              <div className="w-14 h-14 bg-pink-50 dark:bg-pink-950 rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
+                {l.thumbnail_emoji}
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xl font-black text-gray-900 dark:text-white">
-                    ₹{(getPrice(l)).toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs text-gray-400 font-semibold">/hr</span>
-                  {pr?.weekend_surge_pct > 0 && day === 'weekend' && (
-                    <span className="ml-2 text-[10px] bg-warning/20 text-warning font-extrabold px-2 py-0.5 rounded-full">
-                      +{pr.weekend_surge_pct}% wknd
-                    </span>
-                  )}
+              <div className="flex-1 min-w-0">
+                <div className="font-extrabold text-gray-900 dark:text-white text-sm mb-1 line-clamp-1">{l.name}</div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <span>⭐ {l.rating || '4.8'}</span>
+                  <span>·</span>
+                  <span>{l.distance_km != null ? l.distance_km : '—'}km</span>
                 </div>
-                <button
-                  className="bg-primary text-white text-xs font-extrabold px-4 py-2.5 rounded-pill"
-                  onClick={e => { e.stopPropagation(); navigate(`/listing/${l.id}`) }}
-                >
-                  Book Slot →
-                </button>
+                <div className="flex items-center gap-1.5 mt-1 text-xs font-bold text-hgreen">
+                  <div className="w-2 h-2 bg-hgreen rounded-full" />
+                  {(l.available_slots ?? l.total_slots ?? '—')} slots {day}
+                </div>
               </div>
             </div>
-          )
-        })}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xl font-black text-gray-900 dark:text-white">
+                  ₹{(getPrice(l)).toLocaleString('en-IN')}
+                </span>
+                <span className="text-xs text-gray-400 font-semibold">/hr</span>
+                {l.pricing?.weekend_surge_pct > 0 && day === 'weekend' && (
+                  <span className="ml-2 text-[10px] bg-warning/20 text-warning font-extrabold px-2 py-0.5 rounded-full">
+                    +{l.pricing.weekend_surge_pct}% wknd
+                  </span>
+                )}
+              </div>
+              <button
+                className="bg-primary text-white text-xs font-extrabold px-4 py-2.5 rounded-pill"
+                onClick={e => { e.stopPropagation(); navigate(`/listing/${l.id}`) }}
+              >
+                Book Slot →
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

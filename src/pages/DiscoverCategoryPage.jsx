@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MOCK_DISCOVER } from '../lib/mockData'
+import { useStore } from '../store/useStore'
 
 export default function DiscoverCategoryPage() {
   const { category } = useParams()
   const navigate = useNavigate()
+  const { listings } = useStore()
 
   const places = useMemo(() => {
-    return MOCK_DISCOVER.filter(p => p.category.toLowerCase() === category.toLowerCase())
-  }, [category])
+    return listings.filter(p => p.type === 'discover' && p.category?.toLowerCase() === category?.toLowerCase())
+  }, [category, listings])
 
   return (
     <div className="app-shell bg-white dark:bg-gray-900">

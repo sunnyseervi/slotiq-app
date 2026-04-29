@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { MOCK_LISTINGS, VEHICLE_TYPES, FIXED_PRICING, formatInr } from '../../lib/mockData'
+import { VEHICLE_TYPES, FIXED_PRICING, formatInr } from '../../lib/constants'
 import MapWidget from '../../components/MapWidget'
 
 const PASS_TYPES = [
@@ -151,17 +151,7 @@ export default function ParkingTab() {
 
   return (
     <div className="pb-6">
-      {/* Scan & Park Banner */}
-      <div className="mx-4 mt-3 bg-navy rounded-card p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">📷</div>
-        <div className="flex-1">
-          <div className="text-white font-extrabold text-sm">Scan &amp; Park</div>
-          <div className="text-white/55 text-xs">Scan host QR → park → pay on exit</div>
-        </div>
-        <button onClick={() => navigate('/scan')} className="bg-primary text-white text-xs font-extrabold px-3 py-2 rounded-pill flex-shrink-0">
-          INSTANT
-        </button>
-      </div>
+
 
       {/* Search */}
       <div className="flex gap-2 px-4 mt-3">

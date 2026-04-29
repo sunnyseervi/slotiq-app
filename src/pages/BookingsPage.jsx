@@ -5,7 +5,7 @@ import TopBar from '../components/layout/TopBar'
 import BottomNav from '../components/layout/BottomNav'
 import LocationModal from '../components/modals/LocationModal'
 import { useStore } from '../store/useStore'
-import { formatInr, formatDate, formatTime } from '../lib/mockData'
+import { formatInr, formatDate, formatTime } from '../lib/utils'
 import { makeBookingQR } from '../lib/qrEngine'
 
 const FILTER_TABS = ['All', 'Upcoming', 'Active', 'Done', 'Cancelled']

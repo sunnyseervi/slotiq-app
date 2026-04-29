@@ -8,6 +8,9 @@ import { useStore } from './store/useStore.js'
 const { darkMode } = useStore.getState()
 if (darkMode) document.documentElement.classList.add('dark')
 
+// Initialize Auth
+useStore.getState().initAuth()
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
