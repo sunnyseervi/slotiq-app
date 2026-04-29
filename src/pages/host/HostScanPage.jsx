@@ -11,7 +11,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { formatInr } from '../../lib/mockData'
+import { formatInr } from '../../lib/utils'
 import { handleBookingQRScan } from '../../lib/qrEngine'
 
 export default function HostScanPage() {
